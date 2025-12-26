@@ -6,7 +6,6 @@ import com.capstone.vsl.security.UserPrincipal;
 import com.capstone.vsl.service.FavoriteService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -59,14 +58,15 @@ public class UserFavoriteController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<FavoriteDTO>>> getFavorites(
+    public ResponseEntity<ApiResponse<java.util.List<FavoriteDTO>>> getFavorites(
             Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
             var username = extractUsername(authentication);
-            var favorites = favoriteService.getFavorites(username, page, size);
-            return ResponseEntity.ok(ApiResponse.success("Favorites retrieved", favorites));
+            var favoritesPage = favoriteService.getFavorites(username, page, size);
+            var favoritesList = favoritesPage.getContent();
+            return ResponseEntity.ok(ApiResponse.success("Favorites retrieved", favoritesList));
         } catch (IllegalArgumentException e) {
             log.warn("Failed to fetch favorites: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

@@ -53,6 +53,27 @@ public class DictionaryController {
     }
 
     /**
+     * GET /api/dictionary/list
+     * Get all dictionary entries (for admin listing)
+     * No pagination, returns all entries
+     */
+    @GetMapping("/list")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<DictionaryDTO>>> getAll() {
+        try {
+            var results = dictionaryService.getAllWords();
+            return ResponseEntity.ok(ApiResponse.success(
+                    String.format("Found %d word(s)", results.size()),
+                    results
+            ));
+        } catch (Exception e) {
+            log.error("Failed to get all dictionary words: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to get all dictionary words: " + e.getMessage()));
+        }
+    }
+
+    /**
      * GET /api/dictionary/{id}
      * Get detailed dictionary entry by ID (public)
      */

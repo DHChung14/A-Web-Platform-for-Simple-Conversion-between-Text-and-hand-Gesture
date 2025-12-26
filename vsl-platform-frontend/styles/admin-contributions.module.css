@@ -1,11 +1,14 @@
-body {
-  font-family: "Courier New", monospace;
+.admin-container {
+  font-family: 'Courier New', monospace;
   background-color: #050505;
   color: #00ff41;
-  overflow: hidden;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  overflow-x: hidden;
 }
 
-/* Top Status Bar */
+/* --- STATUS BAR (STANDARD TEMPLATE) --- */
 .status-bar {
   position: fixed;
   top: 0;
@@ -15,42 +18,40 @@ body {
   background-color: #0a0a0a;
   border-bottom: 1px solid #00ff41;
   display: flex;
+  justify-content: space-between; /* Căn đều 2 bên trái phải */
   align-items: center;
   padding: 0 20px;
-  font-size: 12px;
+  font-size: 11px;
   z-index: 1000;
   box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+  letter-spacing: 1px;
 }
 
-.status-text {
-  font-size: 11px;
-  letter-spacing: 2px;
+.status-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 30px; /* Khoảng cách giữa các item bên trái */
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .status-indicator {
-  margin-left: auto;
-  display: flex;
-  gap: 15px;
-  align-items: center;
-}
-
-.indicator-dot {
   width: 8px;
   height: 8px;
   background-color: #00ff41;
   border-radius: 50%;
   box-shadow: 0 0 10px #00ff41;
   animation: pulse 1s infinite;
+  display: inline-block;
 }
 
 @keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* Sidebar */
@@ -80,6 +81,7 @@ body {
 
 .sidebar-menu {
   list-style: none;
+  padding: 0;
 }
 
 .menu-item {
@@ -91,6 +93,10 @@ body {
   font-size: 12px;
   letter-spacing: 1px;
   position: relative;
+  display: flex;
+  align-items: center;
+  color: #00ff41;
+  text-decoration: none;
 }
 
 .menu-item:hover {
@@ -99,16 +105,17 @@ body {
   box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.2);
 }
 
-.menu-item.active {
+.menu-item-active {
   border: 1px solid #00ff41;
   background-color: rgba(0, 255, 65, 0.15);
   text-shadow: 0 0 10px #00ff41;
   box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
 }
 
-.menu-item i {
+.icon-wrapper {
   margin-right: 10px;
   min-width: 20px;
+  display: inline-block;
 }
 
 /* Main Content */
@@ -116,17 +123,17 @@ body {
   margin-left: 250px;
   margin-top: 40px;
   padding: 30px;
-  height: calc(100vh - 70px);
-  overflow-y: auto;
+  min-height: calc(100vh - 40px);
   background: linear-gradient(135deg, #050505 0%, #0a0a0a 100%);
 }
 
 .page-title {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: bold;
   margin-bottom: 30px;
   letter-spacing: 2px;
   text-shadow: 0 0 20px #00ff41;
+  text-transform: uppercase;
 }
 
 /* Review Cards Container */
@@ -153,7 +160,7 @@ body {
 }
 
 .review-card::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
@@ -161,16 +168,13 @@ body {
   height: 2px;
   background: linear-gradient(90deg, transparent, #00ff41, transparent);
   animation: scan 2s infinite;
+  pointer-events: none;
 }
 
 @keyframes scan {
-  0%,
-  100% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { top: 100%; }
 }
 
 .review-card-content {
@@ -250,7 +254,7 @@ body {
 
 .btn {
   padding: 10px 20px;
-  font-family: "Courier New", monospace;
+  font-family: 'Courier New', monospace;
   font-size: 12px;
   font-weight: bold;
   letter-spacing: 1px;
@@ -267,12 +271,13 @@ body {
 .btn-approve {
   border-color: #00ff41;
   color: #00ff41;
-  background-color: #00ff41;
-  color: #050505;
+  background-color: rgba(0, 255, 65, 0.1);
   box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
 }
 
 .btn-approve:hover {
+  background-color: #00ff41;
+  color: #050505;
   box-shadow: 0 0 20px rgba(0, 255, 65, 0.6);
   transform: scale(1.05);
 }
@@ -280,6 +285,7 @@ body {
 .btn-reject {
   border-color: #ff4444;
   color: #ff4444;
+  background-color: rgba(255, 68, 68, 0.1);
   box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
 }
 
@@ -299,7 +305,7 @@ body {
   letter-spacing: 2px;
 }
 
-.empty-state i {
+.empty-state-icon {
   font-size: 64px;
   margin-bottom: 20px;
   color: #00ff41;
@@ -307,117 +313,20 @@ body {
   display: block;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #0a0a0a;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #00ff41;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #00ff41;
-  box-shadow: 0 0 10px #00ff41;
-}
-
-/* Responsive design */
+/* Responsive */
 @media (max-width: 1024px) {
   .review-card-content {
     grid-template-columns: 1fr;
   }
-
   .video-preview {
     height: 150px;
   }
-
   .card-actions {
     justify-content: flex-start;
   }
 }
 
 @media (max-width: 768px) {
-  .sidebar {
-    width: 200px;
-  }
-
-  .main-content {
-    margin-left: 200px;
-    padding: 20px;
-  }
-
-  .page-title {
-    font-size: 20px;
-  }
-
-  .review-card {
-    padding: 20px;
-  }
-
-  .card-word {
-    font-size: 22px;
-  }
-}
-
-@media (max-width: 480px) {
-  .sidebar {
-    width: 60px;
-    padding: 10px;
-  }
-
-  .sidebar-header {
-    font-size: 10px;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    margin-bottom: 15px;
-  }
-
-  .menu-item {
-    padding: 10px 5px;
-    font-size: 10px;
-  }
-
-  .menu-item i {
-    margin-right: 0;
-  }
-
-  .menu-item span {
-    display: none;
-  }
-
-  .main-content {
-    margin-left: 60px;
-    padding: 15px;
-  }
-
-  .page-title {
-    font-size: 16px;
-    margin-bottom: 20px;
-  }
-
-  .review-card {
-    padding: 15px;
-  }
-
-  .review-card-content {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-
-  .card-word {
-    font-size: 18px;
-  }
-
-  .card-actions {
-    flex-direction: column;
-  }
-
-  .btn {
-    min-width: 100%;
-  }
+  .sidebar { width: 0; padding: 0; overflow: hidden; }
+  .main-content { margin-left: 0; padding: 20px; }
 }

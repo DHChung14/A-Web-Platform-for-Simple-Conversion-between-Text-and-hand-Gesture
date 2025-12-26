@@ -4,6 +4,27 @@ export interface ApiResponse<T> {
   message: string;
   data: T;
 }
+export interface Landmark {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface HandFrame {
+  landmarks: Landmark[];
+}
+
+// Request gửi lên Backend: Chứa mảng các frame (mỗi frame chứa 21 điểm landmark)
+export interface GestureRecognitionRequest {
+  frames: Landmark[][]; 
+}
+
+// Response từ Backend trả về
+export interface GestureRecognitionResponse {
+  predictedWord: string; // Chữ cái dự đoán (ví dụ: "A", "B")
+  confidence: number;    // Độ tin cậy (0.0 - 1.0)
+  timestamp?: string;
+}
 
 // --- AuthResponse (from backend AuthResponse.java)
 export interface AuthResponse {

@@ -8,8 +8,10 @@ interface AuthStore {
   email: string | null;
   role: string | null;
   isAuthenticated: boolean;
+  isGuest: boolean;
   login: (data: AuthResponse) => void;
   logout: () => void;
+  setGuestMode: () => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -20,6 +22,7 @@ export const useAuthStore = create<AuthStore>()(
       email: null,
       role: null,
       isAuthenticated: false,
+      isGuest: false,
       login: (data: AuthResponse) => {
         // Save token to localStorage for apiClient interceptor
         if (typeof window !== "undefined") {
@@ -31,6 +34,7 @@ export const useAuthStore = create<AuthStore>()(
           email: data.email,
           role: data.role,
           isAuthenticated: true,
+          isGuest: false,
         });
       },
       logout: () => {
@@ -44,6 +48,18 @@ export const useAuthStore = create<AuthStore>()(
           email: null,
           role: null,
           isAuthenticated: false,
+          isGuest: false,
+        });
+      },
+      setGuestMode: () => {
+        // Set guest mode - no token needed, just mark as guest
+        set({
+          token: null,
+          username: "Guest",
+          email: null,
+          role: "GUEST",
+          isAuthenticated: false,
+          isGuest: true,
         });
       },
     }),

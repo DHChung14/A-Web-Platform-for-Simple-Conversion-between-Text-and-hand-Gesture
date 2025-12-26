@@ -108,7 +108,7 @@ services:
       SPRING_ELASTICSEARCH_SOCKET_TIMEOUT: 60s
 
       # AI Service Configuration (Container-to-Container)
-      AI_SERVICE_URL: http://ai-service:5000/predict
+      AI_SERVICE_URL: http://ai-service:5000
       AI_SERVICE_TIMEOUT: 10000
 
       # JWT Configuration
@@ -133,18 +133,13 @@ services:
     networks:
       - vsl-network
     restart: unless-stopped
-    healthcheck:
-      # CRITICAL: Health check uses INTERNAL port 8080 with GET-compatible endpoint
-      # Using /api/dictionary/search (permitAll, supports GET) for health check
-      test:
-        [
-          "CMD-SHELL",
-          "curl -f 'http://localhost:8080/api/dictionary/search?keyword=' || exit 1",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+    # Temporarily disabled to diagnose unhealthy issue
+    # healthcheck:
+    #   test: ["CMD-SHELL", "curl -f 'http://localhost:8080/api/dictionary/search?keyword=' || exit 1"]
+    #   interval: 20s
+    #   timeout: 15s
+    #   retries: 5
+    #   start_period: 80s
 
   # ==================== Service 5: Next.js Frontend ====================
   frontend:

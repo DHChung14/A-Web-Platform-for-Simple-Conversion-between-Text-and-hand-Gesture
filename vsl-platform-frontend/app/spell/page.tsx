@@ -1,189 +1,228 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import apiClient from "@/lib/api-client";
-import { ApiResponse } from "@/types/api";
+import { 
+  ArrowLeft, Terminal, User, Play
+} from "lucide-react";
 import styles from "../../styles/spell.module.css";
+import apiClient from "../../lib/api-client";
+import { useAuthStore } from "@/stores/auth-store";
 
 export default function SpellingPage() {
   const [inputText, setInputText] = useState("");
-  const [gestureImageUrls, setGestureImageUrls] = useState<string[]>([]);
+  const [gestureData, setGestureData] = useState<{char: string, url: string}[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("");
+  const { username, isAuthenticated, isGuest } = useAuthStore();
+  
+  // State cho Status Bar
+  const [currentDateTime, setCurrentDateTime] = useState<string>("");
+  const [userName, setUserName] = useState<string>("INITIALIZING...");
 
-  /**
-   * handleSpell - Gọi API /vsl/spell để lấy gesture images
-   *
-   * Flow:
-   * 1. Validate input không rỗng
-   * 2. Gọi GET /vsl/spell?text={inputText}
-   * 3. Parse response.data.data (string[] - array of image URLs)
-   * 4. Update gestureImageUrls state để hiển thị
-   *
-   * API Contract:
-   * - Endpoint: GET /api/vsl/spell
-   * - Query Params: text (string - có thể có hoặc không có dấu)
-   * - Response: ApiResponse<string[]> với data là array of gesture image URLs
-   * - Rate Limit: Không giới hạn (public endpoint)
-   */
-  const handleSpell = useCallback(async () => {
-    const trimmedText = inputText.trim();
+  // --- 1. Effect: Đồng hồ & Lấy User Info ---
+  useEffect(() => {
+    // Clock
+    const updateTime = () => {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-GB'); 
+      const timeStr = now.toLocaleTimeString('en-GB');
+      setCurrentDateTime(`${dateStr} - ${timeStr}`);
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
 
-    if (!trimmedText) {
-      setError("Vui lòng nhập văn bản");
-      return;
-    }
+    // Get User Info: Ưu tiên từ auth store, nếu không có thì gọi API
+    const fetchUser = async () => {
+      // Nếu là guest mode, hiển thị GUEST_MODE
+      if (isGuest) {
+        setUserName("GUEST_MODE");
+        return;
+      }
 
-    console.log(
-      `[Spelling] Processing text: "${trimmedText}" (${trimmedText.length} characters)`
-    );
+      // Nếu đã có username trong auth store, dùng nó
+      if (username) {
+        setUserName(username);
+        
+        // Vẫn thử gọi API để lấy fullName nếu có
+        if (isAuthenticated) {
+          try {
+            const res: any = await apiClient.get("/users/me");
+            const name = res.fullName || res.username || username;
+            setUserName(name);
+          } catch (error) {
+            // Nếu API fail, vẫn dùng username từ store
+            console.error("Failed to fetch user details:", error);
+          }
+        }
+      } else {
+        // Nếu không có username trong store, thử gọi API
+        try {
+          const res: any = await apiClient.get("/users/me");
+          const name = res.fullName || res.username || "UNKNOWN_USER";
+          setUserName(name);
+        } catch (error) {
+          console.error("Failed to fetch user:", error);
+          setUserName("GUEST_MODE");
+        }
+      }
+    };
+    fetchUser();
+
+    return () => clearInterval(timer);
+  }, [username, isAuthenticated, isGuest]);
+
+  // --- 2. Hàm bỏ dấu tiếng Việt ---
+  const removeAccents = (str: string) => {
+    return str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D");
+  };
+
+  // --- 3. Hàm xử lý Mapping ảnh (Local) ---
+  const handleSpell = () => {
+    if (!inputText.trim()) return;
 
     setIsLoading(true);
-    setError("");
-    setGestureImageUrls([]); // Clear previous results
+    setGestureData([]);
 
-    try {
-      const response = await apiClient.get<ApiResponse<string[]>>(
-        "/vsl/spell",
-        {
-          params: { text: trimmedText },
+    setTimeout(() => {
+      const rawText = removeAccents(inputText).toLowerCase(); 
+      const chars = rawText.split('');
+
+      const newData = chars.map((char) => {
+        if (/[a-z0-9]/.test(char)) {
+          return {
+            char: char,
+            url: `/images/alphabet/${char}.png` 
+          };
+        } 
+        else if (char === ' ') {
+          return { char: ' ', url: 'SPACE' };
         }
-      );
+        else {
+          return { char: char, url: 'UNKNOWN' };
+        }
+      });
 
-      console.log(`[Spelling] API Response:`, response.data);
-
-      if (response.data.code === 200 && response.data.data) {
-        const imageUrls = response.data.data;
-        console.log(
-          `[Spelling] Success: Received ${imageUrls.length} gesture images`
-        );
-        setGestureImageUrls(imageUrls);
-      } else {
-        const errorMsg = response.data.message || "Không thể đánh vần văn bản";
-        console.warn(
-          `[Spelling] API returned non-200 code or empty data:`,
-          errorMsg
-        );
-        setError(errorMsg);
-      }
-    } catch (err: any) {
-      console.error("[Spelling] Error:", err);
-      setError(
-        err.response?.data?.message || "Lỗi khi đánh vần. Vui lòng thử lại."
-      );
-    } finally {
+      setGestureData(newData);
       setIsLoading(false);
-    }
-  }, [inputText]); // Dependencies: inputText
+    }, 500); 
+  };
 
-  const handleClear = () => {
-    setInputText("");
-    setGestureImageUrls([]);
-    setError("");
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSpell();
+    }
   };
 
   return (
-    <div className={styles["spelling-container"]}>
-      {/* Status Bar */}
+    <div className={styles.container}>
+      
+      {/* --- STATUS BAR (Đã đồng bộ với Admin UI) --- */}
       <div className={styles["status-bar"]}>
-        <div style={{ fontSize: "12px", letterSpacing: "2px" }}>
-          VSL SPELLING MODULE
-        </div>
-        <Link href="/dashboard" className={styles["back-link"]}>
-          ← QUAY LẠI
-        </Link>
-      </div>
-
-      {/* Main Content */}
-      <div className={styles["main-content"]}>
-        <h1 className={styles["page-title"]}>ĐÁNH VẦN VSL</h1>
-
-        {/* Input Zone */}
-        <div className={styles["input-zone"]}>
-          <div className={styles["input-label"]}>
-            Nhập văn bản cần đánh vần:
-          </div>
-          <input
-            type="text"
-            className={styles["text-input"]}
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value.toUpperCase())}
-            onKeyPress={(e) => e.key === "Enter" && handleSpell()}
-            placeholder="Ví dụ: HELLO WORLD"
-            disabled={isLoading}
-          />
-
-          {error && (
-            <div
-              style={{ color: "#ff4444", marginTop: "10px", fontSize: "14px" }}
-            >
-              {error}
+        <div className={styles["status-bar-left"]}>
+            <div className={styles["status-item"]}>
+                <span className={styles["status-indicator"]}></span>
+                <span>SYSTEM: ONLINE</span>
             </div>
-          )}
-
-          <div className={styles["button-group"]}>
-            <button
-              className={`${styles.btn} ${styles["btn-primary"]}`}
-              onClick={handleSpell}
-              disabled={isLoading}
-            >
-              {isLoading ? "⏳ Đang xử lý..." : "🎯 Đánh vần"}
-            </button>
-            <button
-              className={styles.btn}
-              onClick={handleClear}
-              disabled={isLoading}
-            >
-              🗑 Xóa
-            </button>
-          </div>
+            <div className={styles["status-item"]}>
+                <User size={14} />
+                {/* Hiển thị USER thay vì ADMIN */}
+                <span style={{textTransform: 'uppercase'}}>USER: {userName}</span>
+            </div>
         </div>
-
-        {/* Output Grid */}
-        {gestureImageUrls.length > 0 && (
-          <div className={styles["output-grid"]}>
-            {gestureImageUrls.map((imageUrl, index) => (
-              <div key={index} className={styles["letter-card"]}>
-                <img
-                  src={imageUrl}
-                  alt={`Gesture ${index}`}
-                  style={{
-                    width: "100%",
-                    height: "120px",
-                    objectFit: "contain",
-                  }}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src =
-                      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='50' x='50' text-anchor='middle' dominant-baseline='middle' font-size='40' fill='%2300ff41'%3E🤚%3C/text%3E%3C/svg%3E";
-                  }}
-                />
-                <div className={styles["letter-label"]}>
-                  {inputText[index]?.toUpperCase() || ""}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Alphabet Reference */}
-        <div className={styles["alphabet-section"]}>
-          <div className={styles["section-title"]}>Bảng chữ cái VSL</div>
-          <div className={styles["alphabet-grid"]}>
-            {alphabet.map((letter) => (
-              <div
-                key={letter}
-                className={styles["alphabet-card"]}
-                onClick={() => setInputText(inputText + letter)}
-              >
-                {letter}
-              </div>
-            ))}
-          </div>
+        <div className={styles["status-item"]}>
+            <span>{currentDateTime}</span>
         </div>
       </div>
+
+      {/* Header */}
+      <header className={styles.header}>
+        <h1 className={styles["main-title"]}>SPELLING TRANSLATOR</h1>
+        <div className={styles["sub-title"]}>TEXT TO HAND SIGN CONVERSION PROTOCOL</div>
+      </header>
+
+      {/* Input Zone */}
+      <section className={styles["input-section"]}>
+        <div className={styles["input-wrapper"]}>
+          <input 
+            type="text" 
+            className={styles["text-input"]}
+            placeholder="ENTER TEXT (VIETNAMESE SUPPORTED)..."
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <button 
+            className={styles["translate-btn"]}
+            onClick={handleSpell}
+            disabled={isLoading}
+          >
+            {isLoading ? "MAPPING..." : (
+              <>
+                EXECUTE <Play size={16} fill="black" />
+              </>
+            )}
+          </button>
+        </div>
+      </section>
+
+      {/* Output Zone */}
+      <section className={styles["output-section"]}>
+        <div className={styles["gesture-grid"]}>
+          {gestureData.map((item, index) => (
+            <div 
+              key={index} 
+              className={styles["gesture-card"]}
+              style={{ animationDelay: `${index * 0.05}s` }}
+            >
+              <div className={styles["image-frame"]}>
+                <div className={styles["bracket-tl"]}></div>
+                <div className={styles["bracket-tr"]}></div>
+                <div className={styles["bracket-bl"]}></div>
+                <div className={styles["bracket-br"]}></div>
+                
+                {item.url === 'SPACE' ? (
+                  <div style={{color: 'rgba(0,255,65,0.3)', fontSize: '12px'}}>[ SPACE ]</div>
+                ) : item.url === 'UNKNOWN' ? (
+                  <div style={{color: '#ff4444', fontSize: '20px'}}>?</div>
+                ) : (
+                  <img 
+                    src={item.url} 
+                    alt={`Sign for ${item.char}`} 
+                    className={styles["gesture-image"]}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      if (target.parentElement) {
+                         const errDiv = document.createElement('div');
+                         errDiv.innerText = '[NO_IMG]';
+                         errDiv.style.color = '#555';
+                         errDiv.style.fontSize = '10px';
+                         target.parentElement.appendChild(errDiv);
+                      }
+                    }}
+                  />
+                )}
+              </div>
+              
+              <span className={styles["character-caption"]}>
+                {item.char === ' ' ? 'SP' : item.char.toUpperCase()}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Footer Navigation */}
+      <Link href="/dashboard">
+        <button className={styles["back-btn"]}>
+           <ArrowLeft size={16} /> RETURN TO DASHBOARD
+        </button>
+      </Link>
+
     </div>
   );
 }

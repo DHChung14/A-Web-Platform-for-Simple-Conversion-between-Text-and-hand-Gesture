@@ -37,9 +37,9 @@ COPY --from=build /app/target/*.jar app.jar
 
 # Expose port
 EXPOSE 8080
-# Health check (simple HTTP check - adjust if actuator is enabled)
+# Health check (uses GET-compatible endpoint that's always public)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/auth/login || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/dictionary/search?keyword= || exit 1
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]

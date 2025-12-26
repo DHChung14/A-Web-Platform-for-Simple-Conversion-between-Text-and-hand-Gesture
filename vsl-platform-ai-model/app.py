@@ -6,10 +6,16 @@ Processes hand landmarks (coordinates) and restores Vietnamese accents
 import os
 import numpy as np
 import joblib
+import traceback
+import logging
 from collections import Counter
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from src.utils.vn_accent_restore import restore_diacritics
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -256,19 +262,11 @@ def predict():
                 'error': 'Failed to determine prediction'
             }), 400
         
-        # Accent restoration logic
-        if raw_char.upper() == "SPACE":
-            # Append space to current text
-            new_text = current_text + " "
-            final_sentence = restore_diacritics(new_text.lower().strip())
-        else:
-            # Append character to current text
-            new_text = current_text + raw_char
-            final_sentence = restore_diacritics(new_text.lower().strip())
-        
+        # Return ONLY the predicted character (not accumulated text)
+        # Frontend will accumulate the characters, not Python
         return jsonify({
             'success': True,
-            'final_sentence': final_sentence,
+            'predicted_word': raw_char,  # ← ONLY the new character/prediction
             'confidence': confidence,
             'raw_char': raw_char,
             'frames_processed': len(frames),
@@ -282,9 +280,90 @@ def predict():
         }), 500
 
 
-# --- INITIALIZATION ---
+@app.route('/fix-diacritics', methods=['POST'])
+def fix_diacritics():
+    """
+    Add Vietnamese diacritics to raw text
+    
+    Request body (JSON):
+    {
+        "text": "xin chao"
+    }
+    
+    Response:
+    {
+        "fixed_text": "xin chào",
+        "success": true
+    }
+    """
+    try:
+        # Validate request
+        if not request.is_json:
+            return jsonify({
+                'success': False,
+                'error': 'Request must be JSON'
+            }), 400
+        
+        data = request.get_json()
+        
+        if 'text' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Missing "text" in request body'
+            }), 400
+        
+        raw_text = data['text']
+        
+        if not isinstance(raw_text, str):
+            return jsonify({
+                'success': False,
+                'error': '"text" must be a string'
+            }), 400
+        
+        if not raw_text.strip():
+            return jsonify({
+                'success': False,
+                'error': '"text" cannot be empty'
+            }), 400
+        
+        # Restore diacritics with better error handling
+        try:
+            fixed_text = restore_diacritics(raw_text.lower().strip())
+            
+            # Validate that fixed_text is not None or empty
+            if not fixed_text or not fixed_text.strip():
+                log.warning(f"restore_diacritics returned empty result for: '{raw_text}'")
+                # Return original text if restoration failed
+                fixed_text = raw_text
+            
+            return jsonify({
+                'success': True,
+                'fixed_text': fixed_text,
+                'original_text': raw_text
+            }), 200
+        except Exception as restore_error:
+            # Log the error for debugging
+            error_trace = traceback.format_exc()
+            log.error(f"Error in restore_diacritics for text '{raw_text}': {str(restore_error)}\n{error_trace}")
+            
+            # Return JSON error response instead of letting Flask return HTML
+            return jsonify({
+                'success': False,
+                'error': f'Failed to restore diacritics: {str(restore_error)}',
+                'original_text': raw_text
+            }), 500
+    
+    except Exception as e:
+        # Log full traceback for debugging
+        error_trace = traceback.format_exc()
+        log.error(f"Unexpected error in fix_diacritics endpoint: {str(e)}\n{error_trace}")
+        
+        return jsonify({
+            'success': False,
+            'error': f'Internal server error: {str(e)}'
+        }), 500
 
-# Load models at startup
+
 try:
     load_models()
     print("✓ API initialized and ready")

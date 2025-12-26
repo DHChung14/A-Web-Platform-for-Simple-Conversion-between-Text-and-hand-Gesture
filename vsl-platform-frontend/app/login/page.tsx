@@ -17,6 +17,7 @@ export default function LoginPage() {
 
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
+  const setGuestMode = useAuthStore((state) => state.setGuestMode);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -137,6 +138,18 @@ export default function LoginPage() {
         <div className={styles.divider}>
           <span className={styles.dividerText}>HOẶC</span>
         </div>
+
+        <button
+          type="button"
+          className={styles.guestButton}
+          onClick={() => {
+            setGuestMode();
+            router.push("/dashboard");
+          }}
+          disabled={isLoading}
+        >
+          Tiếp tục với tư cách Guest
+        </button>
 
         <div className={styles.registerLink}>
           Chưa có tài khoản? <Link href="/register">Đăng ký ngay</Link>

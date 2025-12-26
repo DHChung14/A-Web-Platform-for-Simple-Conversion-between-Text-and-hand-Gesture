@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import apiClient from "@/lib/api-client";
+import { getVideoInfo } from "@/lib/video-utils";
 import { ApiResponse, DictionaryDTO } from "@/types/api";
 import styles from "../../styles/dictionary.module.css";
 
@@ -165,17 +166,62 @@ export default function DictionaryPage() {
             <div key={word.id} className={styles["word-card"]}>
               <div className={styles["word-video-placeholder"]}>
                 {word.videoUrl ? (
-                  <video
-                    src={word.videoUrl}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
-                    controls
-                  />
+                  (() => {
+                    const videoInfo = getVideoInfo(word.videoUrl);
+                    
+                    if (videoInfo.type === 'youtube') {
+                      return (
+                        <iframe
+                          src={videoInfo.embedUrl}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            border: "none"
+                          }}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      );
+                    }
+                    
+                    if (videoInfo.type === 'vimeo') {
+                      return (
+                        <iframe
+                          src={videoInfo.embedUrl}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            border: "none"
+                          }}
+                          allow="autoplay; fullscreen; picture-in-picture"
+                          allowFullScreen
+                        />
+                      );
+                    }
+                    
+                    return (
+                      <video
+                        src={word.videoUrl}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                        controls
+                      />
+                    );
+                  })()
                 ) : (
-                  "🎥"
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: "100%",
+                    fontSize: "48px",
+                    opacity: 0.5
+                  }}>
+                    🎬
+                  </div>
                 )}
               </div>
               <h3 className={styles["word-title"]}>{word.word}</h3>

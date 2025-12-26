@@ -1,2 +1,17 @@
 vsl-platform-backend/postgres-data/
+#docker-compose up -d --build backend
+# Cách 1: Xem logs cuối cùng
+# docker-compose logs backend | Select-Object -Last 50
 
+# # Cách 2: Xem tất cả logs (dễ hơn)
+# docker-compose logs backend
+
+# # Cách 3: Follow logs realtime
+# docker-compose logs -f backend
+
+# Cách 4: Restart container backend
+#docker-compose restart backend
+
+# Markdown documentation files
+*.md
+!README.md

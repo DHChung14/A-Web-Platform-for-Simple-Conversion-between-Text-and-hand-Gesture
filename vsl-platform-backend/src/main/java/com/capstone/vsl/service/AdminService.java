@@ -187,6 +187,57 @@ public class AdminService {
     }
 
     /**
+     * Update user information (admin action).
+     * Allows updating profile fields and role.
+     * Prevents admin from updating their own role.
+     *
+     * @param userId ID of user to update
+     * @param request UserDTO with fields to update
+     * @param currentAdminId ID of current admin (to prevent self-role change)
+     * @return Updated user DTO
+     * @throws IllegalArgumentException if user not found or trying to change own role
+     */
+    @Transactional
+    public UserDTO updateUser(Long userId, UserDTO request, Long currentAdminId) {
+        log.info("Updating user: userId={}, currentAdminId={}", userId, currentAdminId);
+
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+
+        // Prevent admin from changing their own role
+        if (request.getRole() != null && !request.getRole().equals(user.getRole())) {
+            if (userId.equals(currentAdminId)) {
+                throw new IllegalArgumentException("Cannot change your own role");
+            }
+            user.setRole(request.getRole());
+        }
+
+        // Update profile fields (if provided)
+        if (request.getFullName() != null) {
+            user.setFullName(request.getFullName());
+        }
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+        if (request.getDateOfBirth() != null) {
+            user.setDateOfBirth(request.getDateOfBirth());
+        }
+        if (request.getAvatarUrl() != null) {
+            user.setAvatarUrl(request.getAvatarUrl());
+        }
+        if (request.getBio() != null) {
+            user.setBio(request.getBio());
+        }
+        if (request.getAddress() != null) {
+            user.setAddress(request.getAddress());
+        }
+
+        user = userRepository.save(user);
+        log.info("Updated user: userId={}", userId);
+        return userToDTO(user);
+    }
+
+    /**
      * Force reset a user's password (admin action).
      *
      * @param userId     target user id

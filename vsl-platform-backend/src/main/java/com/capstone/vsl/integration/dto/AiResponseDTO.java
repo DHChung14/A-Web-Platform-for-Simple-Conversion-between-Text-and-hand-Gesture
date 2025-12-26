@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * Expected JSON format from Python API:
  * {
  *   "success": true,
- *   "final_sentence": "xin chào",
+ *   "predicted_word": "a",
  *   "confidence": 0.95,
  *   "raw_char": "a",
  *   "frames_processed": 5,
@@ -18,8 +18,8 @@ public record AiResponseDTO(
         @JsonProperty("success")
         Boolean success,
         
-        @JsonProperty("final_sentence")
-        String finalSentence,
+        @JsonProperty("predicted_word")
+        String predictedWord,
         
         @JsonProperty("confidence")
         Double confidence,

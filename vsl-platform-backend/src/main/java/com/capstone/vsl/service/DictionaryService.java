@@ -73,6 +73,23 @@ public class DictionaryService {
     }
 
     /**
+     * Get all dictionary words (for admin listing)
+     * Returns all words from PostgreSQL
+     *
+     * @return List of all dictionary entries
+     */
+    @Transactional(readOnly = true)
+    public List<DictionaryDTO> getAllWords() {
+        log.debug("Getting all dictionary words");
+        var results = dictionaryRepository.findAll();
+        log.debug("Found {} words", results.size());
+        
+        return results.stream()
+                .map(this::entityToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Create a new dictionary word
      * Dual-Write Pattern:
      * 1. Save to PostgreSQL (transactional, source of truth)

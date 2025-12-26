@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSL Platform - Gesture Recognition HUD</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #050505;
+            --bg-darker: #0a0a0a;
+            --neon-green: #00ff41;
+            --neon-green-glow: #00ff41;
+            --text-primary: #00ff41;
+            --text-secondary: #00cc33;
+            --border-color: #00ff41;
+            --accent-dim: #004d00;
+        }
+
+        body {
+            font-family: 'Courier New', 'Fira Code', monospace;
+            background-color: var(--bg-dark);
+            color: var(--neon-green);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Scanning line animation */
+        @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100vh); }
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { text-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green); }
+            50% { text-shadow: 0 0 20px var(--neon-green), 0 0 40px var(--neon-green); }
+        }
+
+        @keyframes rec-blink {
+            0%, 49% { color: var(--neon-green); }
+            50%, 100% { color: #ff0000; }
+        }
+
+        /* Main container */
+        .hud-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-dark);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Scanline effect overlay */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 255, 65, 0.03),
+                rgba(0, 255, 65, 0.03) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            z-index: 999;
+        }
+
+        /* Header Status Bar */
+        .status-bar {
+            background-color: var(--bg-darker);
+            border-bottom: 2px solid var(--neon-green);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            letter-spacing: 2px;
+            position: relative;
+            z-index: 100;
+        }
+
+        .status-left, .status-right {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .status-item {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .status-label {
+            color: var(--text-secondary);
+            opacity: 0.7;
+        }
+
+        .status-value {
+            color: var(--neon-green);
+            font-weight: bold;
+            animation: flicker 0.15s infinite alternate;
+        }
+
+        .rec-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            animation: flicker 0.1s infinite;
+        }
+
+        .rec-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #ff0000;
+            border-radius: 50%;
+            animation: rec-blink 1s infinite;
+        }
+
+        /* Main content area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            position: relative;
+            z-index: 50;
+        }
+
+        /* Viewport container with bracket corners */
+        .viewport-container {
+            flex: 1;
+            border: 2px solid var(--neon-green);
+            position: relative;
+            background-color: var(--bg-darker);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Bracket corners */
+        .viewport-container::before,
+        .viewport-container::after {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 3px solid var(--neon-green);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .viewport-container::before {
+            top: -2px;
+            left: -2px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .viewport-container::after {
+            bottom: -2px;
+            right: -2px;
+            border-left: none;
+            border-top: none;
+        }
+
+        .viewport-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Video feed placeholder */
+        .video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: hue-rotate(120deg) brightness(0.9);
+        }
+
+        /* Scanline animation over viewport */
+        .viewport-scanline {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to bottom, var(--neon-green), transparent);
+            animation: scan 3s linear infinite;
+            pointer-events: none;
+            z-index: 9;
+        }
+
+        /* REC indicator on viewport */
+        .rec-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: transparent;
+            border: 2px solid #ff0000;
+            padding: 8px 12px;
+            font-size: 11px;
+            letter-spacing: 2px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 15;
+        }
+
+        .rec-badge .dot {
+            width: 6px;
+            height: 6px;
+            background-color: #ff0000;
+            border-radius: 50%;
+            animation: rec-blink 1s infinite;
+        }
+
+        /* Terminal Log Panel */
+        .terminal-log {
+            width: 250px;
+            background-color: var(--bg-darker);
+            border: 2px solid var(--neon-green);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .terminal-header {
+            background-color: var(--bg-darker);
+            border-bottom: 2px solid var(--neon-green);
+            padding: 12px;
+            font-size: 11px;
+            letter-spacing: 2px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .terminal-log-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            font-size: 13px;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .log-entry {
+            padding: 8px;
+            border-left: 2px solid var(--neon-green);
+            padding-left: 10px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            animation: pulse-glow 1.5s ease-in-out;
+        }
+
+        .log-entry.active {
+            color: var(--neon-green);
+            background-color: rgba(0, 255, 65, 0.1);
+            border-left: 3px solid var(--neon-green);
+        }
+
+        .log-entry.error {
+            color: #ff6b6b;
+            border-left-color: #ff6b6b;
+        }
+
+        /* Scrollbar styling */
+        .terminal-log-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .terminal-log-content::-webkit-scrollbar-track {
+            background: var(--bg-darker);
+        }
+
+        .terminal-log-content::-webkit-scrollbar-thumb {
+            background: var(--neon-green);
+            border-radius: 4px;
+        }
+
+        /* Control Buttons */
+        .control-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 12px;
+            z-index: 200;
+        }
+
+        .tactical-btn {
+            background-color: transparent;
+            border: 2px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 10px 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tactical-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background-color: var(--neon-green);
+            transition: left 0.2s ease;
+            z-index: -1;
+        }
+
+        .tactical-btn:hover {
+            color: var(--bg-dark);
+            box-shadow: 0 0 20px var(--neon-green), inset 0 0 10px rgba(0, 255, 65, 0.3);
+        }
+
+        .tactical-btn:hover::before {
+            left: 0;
+        }
+
+        .tactical-btn:active {
+            transform: scale(0.95);
+        }
+
+        .tactical-btn i {
+            margin-right: 6px;
+        }
+
+        /* Info Panel - Bottom Center */
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--bg-darker);
+            border: 2px solid var(--neon-green);
+            padding: 12px 20px;
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-align: center;
+            z-index: 200;
+            max-width: 400px;
+        }
+
+        .info-title {
+            color: var(--neon-green);
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .info-subtitle {
+            color: var(--text-secondary);
+            font-size: 10px;
+        }
+
+        /* Letter Display - Top Center */
+        .letter-display {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: transparent;
+            border: 3px solid var(--neon-green);
+            padding: 20px 40px;
+            font-size: 48px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            color: var(--neon-green);
+            text-shadow: 0 0 20px var(--neon-green);
+            z-index: 200;
+            animation: pulse-glow 1s ease-in-out;
+        }
+
+        /* Responsive design */
+        @media (max-width: 1024px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .terminal-log {
+                width: 100%;
+                height: 200px;
+            }
+
+            .status-bar {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+
+            .status-left, .status-right {
+                gap: 15px;
+            }
+
+            .letter-display {
+                font-size: 36px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .status-item {
+                gap: 4px;
+            }
+
+            .status-label, .status-value {
+                font-size: 10px;
+            }
+
+            .letter-display {
+                font-size: 28px;
+                padding: 15px 25px;
+            }
+
+            .control-panel {
+                flex-direction: column;
+                width: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                bottom: 10px;
+            }
+
+            .tactical-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="hud-container">
+        <!-- Scanline overlay -->
+        <div class="scanlines"></div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-left">
+                <div class="status-item">
+                    <span class="status-label">> SYSTEM:</span>
+                    <span class="status-value">ONLINE</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">HAND_DETECTED:</span>
+                    <span class="status-value">[TRUE]</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">MODE:</span>
+                    <span class="status-value">GESTURE_RECOGNITION</span>
+                </div>
+            </div>
+            <div class="status-right">
+                <div class="status-item">
+                    <span class="status-label">UPTIME:</span>
+                    <span class="status-value">00:45:23</span>
+                </div>
+                <div class="rec-indicator">
+                    <span class="status-label">STATUS:</span>
+                    <span class="rec-dot"></span>
+                    <span class="status-value">REC</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Viewport -->
+            <div class="viewport-container">
+                <div class="viewport-content">
+                    <img src="https://placehold.co/1024x576/000/0f0?text=VIDEO+FEED" alt="Video feed" class="video-feed">
+                    <div class="viewport-scanline"></div>
+                </div>
+                <div class="rec-badge">
+                    <div class="dot"></div>
+                    REC
+                </div>
+
+                <!-- Letter Display (overlaid on viewport) -->
+                <div class="letter-display">A</div>
+            </div>
+
+            <!-- Terminal Log -->
+            <div class="terminal-log">
+                <div class="terminal-header">[ DETECTION LOG ]</div>
+                <div class="terminal-log-content">
+                    <div class="log-entry">
+                        <strong>> SYS_INIT</strong><br/>
+                        Initializing hand detection...
+                    </div>
+                    <div class="log-entry">
+                        <strong>> MEDIAPIPE_LOADED</strong><br/>
+                        Model loaded successfully
+                    </div>
+                    <div class="log-entry">
+                        <strong>> CAMERA_ACTIVE</strong><br/>
+                        Video stream active
+                    </div>
+                    <div class="log-entry active">
+                        <strong>> GESTURE_DETECTED</strong><br/>
+                        [A] Confidence: 95.2%
+                    </div>
+                    <div class="log-entry">
+                        <strong>> PREV_GESTURE</strong><br/>
+                        [A] Logged - T: 00:42:15
+                    </div>
+                    <div class="log-entry">
+                        <strong>> POSITION</strong><br/>
+                        X: 642 | Y: 288 | Z: -0.12
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button class="tactical-btn" onclick="window.location.href = 'dashboard.html'">
+                <i class="fas fa-arrow-left"></i> BACK
+            </button>
+            <button class="tactical-btn">
+                <i class="fas fa-exchange-alt"></i> SWITCH MODE
+            </button>
+        </div>
+
+        <!-- Info Panel -->
+        <div class="info-panel">
+            <div class="info-title">📍 POSITION YOUR HAND CLEARLY</div>
+            <div class="info-subtitle">ENSURE ADEQUATE LIGHTING | STEADY POSITION REQUIRED</div>
+        </div>
+    </div>
+</body>
+</html>

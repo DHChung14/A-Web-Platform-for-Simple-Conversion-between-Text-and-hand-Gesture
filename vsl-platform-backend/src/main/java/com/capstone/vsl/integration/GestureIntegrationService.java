@@ -74,7 +74,7 @@ public class GestureIntegrationService {
             log.debug("Calling unified AI service with {} frames", frameCount);
 
             ResponseEntity<AiResponseDTO> response = aiRestClient.post()
-                    .uri("")
+                    .uri("/predict")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(requestBody)
                     .retrieve()
@@ -98,19 +98,19 @@ public class GestureIntegrationService {
                         HttpStatus.INTERNAL_SERVER_ERROR.value());
             }
 
-            // Extract final sentence
-            if (responseBody.finalSentence() == null || responseBody.finalSentence().trim().isEmpty()) {
-                throw new ExternalServiceException("AI Service returned empty final_sentence", 
+            // Extract predicted word (new character only)
+            if (responseBody.predictedWord() == null || responseBody.predictedWord().trim().isEmpty()) {
+                throw new ExternalServiceException("AI Service returned empty predicted_word", 
                         HttpStatus.INTERNAL_SERVER_ERROR.value());
             }
 
-            var finalSentence = responseBody.finalSentence().trim();
-            log.info("Unified AI service returned: '{}' (confidence: {}, raw_char: '{}')", 
-                    finalSentence, 
+            var predictedWord = responseBody.predictedWord().trim();
+            log.info("Unified AI service returned: '{}' (confidence: {}, raw_char: '{}')\n", 
+                    predictedWord, 
                     responseBody.confidence(), 
                     responseBody.rawChar());
 
-            return finalSentence;
+            return predictedWord;
 
         } catch (ResourceAccessException e) {
             log.error("AI Service is unavailable: {}", e.getMessage());
@@ -129,6 +129,74 @@ public class GestureIntegrationService {
             log.error("Failed to call AI Service: {}", e.getMessage(), e);
             throw new ExternalServiceException(
                     "Failed to process gesture recognition: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    e);
+        }
+    }
+
+    /**
+     * Fix Vietnamese diacritics for raw text
+     * Calls Python AI service to add proper Vietnamese accents
+     *
+     * @param rawText Raw Vietnamese text without diacritics
+     * @return Text with proper Vietnamese diacritics
+     * @throws AiServiceUnavailableException if AI service is offline
+     * @throws ExternalServiceException if external service returns error
+     */
+    public String fixDiacritics(String rawText) {
+        log.info("Fixing diacritics for text: '{}'", rawText);
+
+        // Prepare request body for diacritics endpoint
+        var requestBody = Map.of(
+                "text", rawText
+        );
+
+        try {
+            log.debug("Calling AI service /fix-diacritics endpoint");
+
+            ResponseEntity<Map> response = aiRestClient.post()
+                    .uri("/fix-diacritics")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(requestBody)
+                    .retrieve()
+                    .toEntity(Map.class);
+
+            var responseBody = response.getBody();
+            
+            // Validate response
+            if (responseBody == null) {
+                throw new ExternalServiceException("AI Service returned null response for diacritics", 
+                        HttpStatus.INTERNAL_SERVER_ERROR.value());
+            }
+
+            // Extract fixed text from response
+            Object fixedTextObj = responseBody.get("fixed_text");
+            if (fixedTextObj == null) {
+                log.warn("AI Service did not return fixed_text, returning original text");
+                return rawText;
+            }
+
+            String fixedText = fixedTextObj.toString().trim();
+            log.info("Diacritics fixed: '{}' → '{}'", rawText, fixedText);
+            return fixedText;
+
+        } catch (ResourceAccessException e) {
+            log.error("AI Service is unavailable: {}", e.getMessage());
+            throw new AiServiceUnavailableException("AI Service is offline", e);
+        } catch (HttpServerErrorException e) {
+            log.error("AI Service returned server error: {} - {}", 
+                    e.getStatusCode(), e.getMessage());
+            throw new ExternalServiceException(
+                    "AI Service error: " + e.getStatusCode(), 
+                    e.getStatusCode().value(), 
+                    e);
+        } catch (ExternalServiceException e) {
+            // Re-throw as-is
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to fix diacritics: {}", e.getMessage(), e);
+            throw new ExternalServiceException(
+                    "Failed to fix diacritics: " + e.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR.value(),
                     e);
         }

@@ -1,441 +1,255 @@
-body {
-  background: #050505;
+/* vsl-platform-frontend/styles/spell.module.css */
+
+.container {
+  background-color: #050505;
   color: #00ff41;
-  font-family: "Courier New", monospace;
+  font-family: 'Courier New', monospace;
   min-height: 100vh;
-  overflow-x: hidden;
+  width: 100%;
   position: relative;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Scanline effect background */
-body::before {
-  content: "";
+/* Scanline effect */
+.container::before {
+  content: '';
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   background: repeating-linear-gradient(
-    0deg,
-    rgba(0, 255, 65, 0.03) 0px,
-    rgba(0, 255, 65, 0.03) 1px,
-    transparent 1px,
-    transparent 2px
+      0deg,
+      rgba(0, 255, 65, 0.03) 0px,
+      rgba(0, 255, 65, 0.03) 1px,
+      transparent 1px,
+      transparent 2px
   );
   pointer-events: none;
-  z-index: 10;
+  z-index: 1;
 }
 
-/* Blinking cursor animation */
-@keyframes blink {
-  0%,
-  49% {
-    opacity: 1;
-  }
-  50%,
-  100% {
-    opacity: 0;
-  }
-}
-
-/* Glowing text animation */
-@keyframes glow {
-  0%,
-  100% {
-    text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41;
-  }
-  50% {
-    text-shadow: 0 0 20px #00ff41, 0 0 30px #00ff41;
-  }
-}
-
-/* Staggered fade-in animation */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Button hover glow */
-@keyframes buttonGlow {
-  0%,
-  100% {
-    box-shadow: 0 0 10px rgba(0, 255, 65, 0.5),
-      inset 0 0 10px rgba(0, 255, 65, 0.1);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(0, 255, 65, 0.8),
-      inset 0 0 20px rgba(0, 255, 65, 0.2);
-  }
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ==================== HEADER (STATUS BAR) ==================== */
+/* --- STATUS BAR (Đã đồng bộ với Admin UI) --- */
 .status-bar {
-  border: 1px solid #00ff41;
-  border-bottom: 2px solid #00ff41;
-  padding: 15px;
-  margin-bottom: 20px;
-  background: rgba(0, 255, 65, 0.02);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-.status-text {
-  font-size: 12px;
-  letter-spacing: 2px;
-  animation: glow 2s ease-in-out infinite;
-}
-
-.cursor {
-  display: inline-block;
-  width: 8px;
-  height: 14px;
-  background: #00ff41;
-  margin-left: 5px;
-  animation: blink 1s infinite;
-}
-
-.mode-indicator {
-  border: 1px solid #00ff41;
-  padding: 5px 10px;
+  padding: 10px 25px;
+  border-bottom: 1px solid #00ff41;
+  background: rgba(0, 20, 0, 0.95);
+  backdrop-filter: blur(5px);
+  z-index: 100;
   font-size: 11px;
   letter-spacing: 1px;
-  background: rgba(0, 255, 65, 0.05);
+  height: 45px;
+  position: sticky;
+  top: 0;
 }
 
-/* ==================== INPUT ZONE ==================== */
-.input-zone {
+.status-bar-left {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 25px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #00ff41;
+}
+
+.status-indicator {
+  width: 6px;
+  height: 6px;
+  background-color: #00ff41;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #00ff41;
+  animation: blink 2s infinite;
+}
+
+/* --- HEADER --- */
+.header {
+  text-align: center;
+  margin-top: 40px;
   margin-bottom: 30px;
-  flex-wrap: wrap;
-  align-items: flex-end;
+  position: relative;
+  z-index: 2;
 }
 
-.input-field {
-  flex: 1;
-  min-width: 250px;
-  padding: 12px;
-  background: transparent;
-  border: 1px solid #00ff41;
-  color: #00ff41;
-  font-family: "Courier New", monospace;
-  font-size: 14px;
-  outline: none;
-  transition: all 0.3s;
-  box-shadow: 0 0 10px rgba(0, 255, 65, 0.1);
-}
-
-.input-field::placeholder {
-  color: rgba(0, 255, 65, 0.5);
-}
-
-.input-field:focus {
-  box-shadow: 0 0 20px rgba(0, 255, 65, 0.3),
-    inset 0 0 10px rgba(0, 255, 65, 0.05);
-}
-
-.execute-btn {
-  padding: 12px 25px;
-  background: transparent;
-  border: 1px solid #00ff41;
-  color: #00ff41;
-  font-family: "Courier New", monospace;
-  font-size: 12px;
-  letter-spacing: 2px;
-  cursor: pointer;
-  transition: all 0.3s;
+.main-title {
+  font-size: 32px;
   text-transform: uppercase;
-  white-space: nowrap;
+  letter-spacing: 4px;
+  text-shadow: 0 0 20px #00ff41;
+  margin-bottom: 10px;
+  display: inline-block;
 }
 
-.execute-btn:hover {
-  background: #00ff41;
-  color: #050505;
-  animation: buttonGlow 1s ease-in-out;
+.sub-title {
+  font-size: 12px;
+  color: rgba(0, 255, 65, 0.7);
+  letter-spacing: 3px;
 }
 
-.execute-btn:active {
-  transform: scale(0.98);
+/* --- INPUT ZONE --- */
+.input-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 40px;
+  padding: 0 20px;
+  z-index: 2;
 }
 
-/* ==================== OUTPUT ZONE (GRID) ==================== */
-.output-zone {
+.input-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+}
+
+.text-input {
   flex: 1;
-  overflow-y: auto;
-  padding-right: 10px;
-  margin-bottom: 20px;
+  background: rgba(0, 20, 0, 0.6);
   border: 1px solid #00ff41;
-  padding: 20px;
-  background: rgba(0, 255, 65, 0.01);
-  min-height: 300px;
+  border-right: none;
+  color: #00ff41;
+  font-family: 'Courier New', monospace;
+  font-size: 18px;
+  padding: 15px 25px;
+  outline: none;
+  text-transform: uppercase;
+  letter-spacing: 2px;
 }
 
-.output-zone::-webkit-scrollbar {
-  width: 8px;
+.text-input:focus {
+  background: rgba(0, 40, 0, 0.8);
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
 }
 
-.output-zone::-webkit-scrollbar-track {
-  background: rgba(0, 255, 65, 0.05);
-}
-
-.output-zone::-webkit-scrollbar-thumb {
+.translate-btn {
   background: #00ff41;
-  border-radius: 2px;
+  color: #000;
+  border: 1px solid #00ff41;
+  padding: 0 30px;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s;
+}
+
+.translate-btn:hover {
+  background: #00cc33;
+  box-shadow: 0 0 20px #00ff41;
+}
+
+/* --- OUTPUT ZONE --- */
+.output-section {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-y: auto;
+  z-index: 2;
 }
 
 .gesture-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 20px;
-  width: 100%;
+  max-width: 1200px;
 }
 
 .gesture-card {
+  width: 120px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  animation: fadeInUp 0.6s ease-out forwards;
+  animation: fadeIn 0.5s ease forwards;
   opacity: 0;
 }
 
-/* Stagger animation for cards */
-.gesture-card:nth-child(1) {
-  animation-delay: 0.1s;
-}
-.gesture-card:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.gesture-card:nth-child(3) {
-  animation-delay: 0.3s;
-}
-.gesture-card:nth-child(4) {
-  animation-delay: 0.4s;
-}
-.gesture-card:nth-child(5) {
-  animation-delay: 0.5s;
-}
-.gesture-card:nth-child(6) {
-  animation-delay: 0.6s;
-}
-.gesture-card:nth-child(7) {
-  animation-delay: 0.7s;
-}
-.gesture-card:nth-child(8) {
-  animation-delay: 0.8s;
-}
-.gesture-card:nth-child(9) {
-  animation-delay: 0.9s;
-}
-.gesture-card:nth-child(10) {
-  animation-delay: 1s;
-}
-
 .image-frame {
+  width: 120px;
+  height: 120px;
+  border: 1px solid rgba(0, 255, 65, 0.3);
+  background: rgba(0, 20, 0, 0.4);
   position: relative;
-  width: 150px;
-  height: 150px;
-  border: 1px solid #00ff41;
-  background: rgba(0, 255, 65, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  padding: 5px;
   transition: all 0.3s;
 }
 
-/* Corner brackets effect */
-.image-frame::before,
-.image-frame::after {
-  content: "";
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  border: 1px solid #00ff41;
-}
-
-.image-frame::before {
-  top: -1px;
-  left: -1px;
-  border-right: none;
-  border-bottom: none;
-}
-
-.image-frame::after {
-  bottom: -1px;
-  right: -1px;
-  border-left: none;
-  border-top: none;
-}
-
-/* Dynamic corner brackets left-right */
-.image-frame .bracket-tl,
-.image-frame .bracket-tr,
-.image-frame .bracket-bl,
-.image-frame .bracket-br {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  border: 1px solid #00ff41;
-}
-
-.image-frame .bracket-tl {
-  top: -1px;
-  left: -1px;
-  border-right: none;
-  border-bottom: none;
-}
-
-.image-frame .bracket-tr {
-  top: -1px;
-  right: -1px;
-  border-left: none;
-  border-bottom: none;
-}
-
-.image-frame .bracket-bl {
-  bottom: -1px;
-  left: -1px;
-  border-right: none;
-  border-top: none;
-}
-
-.image-frame .bracket-br {
-  bottom: -1px;
-  right: -1px;
-  border-left: none;
-  border-top: none;
+.image-frame:hover {
+  border-color: #00ff41;
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+  transform: scale(1.05);
 }
 
 .gesture-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  filter: drop-shadow(0 0 5px rgba(0,255,65,0.5));
 }
 
-.image-frame:hover {
-  box-shadow: 0 0 15px rgba(0, 255, 65, 0.4),
-    inset 0 0 15px rgba(0, 255, 65, 0.1);
-  transform: scale(1.05);
+/* Brackets decoration */
+.bracket-tl, .bracket-tr, .bracket-bl, .bracket-br {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: #00ff41;
+  border-style: solid;
 }
+.bracket-tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+.bracket-tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+.bracket-bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+.bracket-br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
 
 .character-caption {
-  font-size: 16px;
+  font-size: 24px;
   font-weight: bold;
-  letter-spacing: 2px;
-  color: #00ff41;
-  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
-}
-
-/* ==================== FOOTER ==================== */
-.footer {
-  display: flex;
-  justify-content: flex-start;
-  gap: 10px;
+  text-shadow: 0 0 10px #00ff41;
+  border-bottom: 2px solid #00ff41;
+  padding: 0 10px;
 }
 
 .back-btn {
-  padding: 10px 20px;
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
   background: transparent;
   border: 1px solid #00ff41;
   color: #00ff41;
-  font-family: "Courier New", monospace;
-  font-size: 12px;
-  letter-spacing: 2px;
+  padding: 10px 20px;
+  font-family: 'Courier New', monospace;
   cursor: pointer;
-  transition: all 0.3s;
-  text-transform: uppercase;
+  z-index: 100;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .back-btn:hover {
-  background: #00ff41;
-  color: #050505;
-  transform: translateX(-5px);
+  background: rgba(0, 255, 65, 0.1);
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
 }
 
-/* ==================== EMPTY STATE ==================== */
-.empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: rgba(0, 255, 65, 0.5);
-  font-size: 14px;
-  text-align: center;
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
-
-/* ==================== RESPONSIVE ==================== */
-@media (max-width: 768px) {
-  .container {
-    padding: 15px;
-  }
-
-  .status-bar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .input-zone {
-    flex-direction: column;
-  }
-
-  .input-field {
-    width: 100%;
-  }
-
-  .execute-btn {
-    width: 100%;
-  }
-
-  .gesture-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 15px;
-  }
-
-  .image-frame {
-    width: 120px;
-    height: 120px;
-  }
-
-  .character-caption {
-    font-size: 14px;
-  }
-}
-
-@media (max-width: 480px) {
-  .gesture-grid {
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 10px;
-  }
-
-  .image-frame {
-    width: 100px;
-    height: 100px;
-  }
-
-  .character-caption {
-    font-size: 12px;
-  }
+@keyframes fadeIn {
+  to { opacity: 1; }
 }

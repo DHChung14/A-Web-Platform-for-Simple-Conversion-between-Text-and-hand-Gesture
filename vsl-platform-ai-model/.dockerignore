@@ -48,6 +48,9 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Markdown documentation
+*.md
+
 # Documentation (optional, keep if needed)
 *.md
 !README.md

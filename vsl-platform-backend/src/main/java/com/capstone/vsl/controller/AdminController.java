@@ -110,6 +110,40 @@ public class AdminController {
     }
 
     /**
+     * PUT /api/admin/users/{userId}
+     * API Cập nhật thông tin User tổng quát (Info, Role, Status)
+     * Thay thế cho API /role cũ để sửa được nhiều thông tin hơn cùng lúc.
+     */
+    @PutMapping("/users/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<UserDTO>> updateUser(
+            @PathVariable Long userId,
+            @RequestBody UserDTO request,
+            Authentication authentication) {
+        try {
+            // Lấy ID admin đang đăng nhập để kiểm tra bảo mật (không cho tự đổi Role/Status của chính mình)
+            var userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            var currentAdminId = userPrincipal.getId();
+
+            // Gọi service xử lý
+            var updatedUser = adminService.updateUser(userId, request, currentAdminId);
+            
+            return ResponseEntity.ok(ApiResponse.success(
+                    "User updated successfully",
+                    updatedUser
+            ));
+        } catch (IllegalArgumentException e) {
+            log.warn("Update validation failed for user {}: {}", userId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to update user {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to update user: " + e.getMessage()));
+        }
+    }
+
+    /**
      * PUT /api/admin/users/{userId}/reset-password
      * Force resets the user's password without old password requirement.
      *

@@ -19,7 +19,7 @@ public class DictionaryDTO {
     
     private String definition;
     
-    @NotBlank(message = "Video URL is required")
+    // Video URL is optional - not all words have video tutorials
     private String videoUrl;
     
     private Boolean elasticSynced;

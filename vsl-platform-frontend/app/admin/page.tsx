@@ -1,172 +1,249 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { 
+  Terminal, 
+  LayoutDashboard, 
+  Users, 
+  FileText, 
+  BookOpen, 
+  LogOut, 
+  Lock, 
+  AlertCircle,
+  Activity,
+  User
+} from "lucide-react";
 import styles from "../../styles/admin.module.css";
-
-interface DashboardStats {
-  totalUsers: number;
-  totalWords: number;
-  pendingContributions: number;
-  systemUptime: number;
-}
+import { adminApi } from "@/lib/admin-api-client";
+import { useAuthStore } from "@/stores/auth-store";
 
 export default function AdminDashboard() {
+  const pathname = usePathname();
   const router = useRouter();
-  const [stats, setStats] = useState<DashboardStats>({
-    totalUsers: 1024,
-    totalWords: 5300,
-    pendingContributions: 12,
-    systemUptime: 99.9,
+  const logout = useAuthStore((state) => state.logout);
+  const { username } = useAuthStore();
+  
+  // State cho đồng hồ
+  const [currentDateTime, setCurrentDateTime] = useState<string>("");
+  const adminName = username?.toUpperCase() || "ADMIN"; // Lấy tên từ auth store
+  
+  // State cho stats từ API
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalWords: 0,
+    pendingContributions: 0,
+    uptime: "99.9%"
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Effect cập nhật thời gian mỗi giây
   useEffect(() => {
-    // Fetch dashboard stats from API
-    const fetchStats = async () => {
-      try {
-        const response = await fetch("/api/admin/stats", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
+    const updateTime = () => {
+      const now = new Date();
+      // Format: DD/MM/YYYY | HH:mm:ss
+      const dateStr = now.toLocaleDateString('en-GB'); 
+      const timeStr = now.toLocaleTimeString('en-GB');
+      setCurrentDateTime(`${dateStr} - ${timeStr}`);
+    };
 
-        if (response.ok) {
-          const data = await response.json();
-          setStats({
-            totalUsers: data.data?.totalUsers || 1024,
-            totalWords: data.data?.totalWords || 5300,
-            pendingContributions: data.data?.pendingContributions || 12,
-            systemUptime: 99.9,
-          });
-        }
-      } catch (error) {
-        console.error("Failed to fetch stats:", error);
+    updateTime(); // Chạy ngay lập tức
+    const timer = setInterval(updateTime, 1000); // Cập nhật mỗi giây
+
+    return () => clearInterval(timer); // Dọn dẹp khi unmount
+  }, []);
+
+  // Effect để load stats từ API
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await adminApi.getStats();
+        setStats({
+          totalUsers: data.totalUsers,
+          totalWords: data.totalWords,
+          pendingContributions: data.pendingContributions,
+          uptime: "99.9%" // Uptime không có trong API, giữ giá trị mặc định
+        });
+      } catch (err: any) {
+        console.error("Error loading dashboard stats:", err);
+        setError(err.response?.data?.message || err.message || "Failed to load statistics");
+        // Giữ giá trị mặc định khi lỗi
       } finally {
         setLoading(false);
       }
     };
 
-    fetchStats();
+    loadStats();
   }, []);
 
-  const navigateTo = (page: string) => {
-    router.push(`/admin/${page}`);
-  };
+  // Menu Configuration
+  const menuItems = [
+    { label: "[DASHBOARD]", href: "/admin", icon: LayoutDashboard },
+    { label: "[USER_MANAGEMENT]", href: "/admin/users", icon: Users },
+    { label: "[CONTRIBUTIONS]", href: "/admin/contributions", icon: FileText },
+    { label: "[DICTIONARY_DB]", href: "/admin/dictionary", icon: BookOpen },
+  ];
 
-  const logout = () => {
-    localStorage.removeItem("token");
+  // #region agent log
+  const handleLogout = () => {
+    fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin/page.tsx:handleLogout',message:'Logout button clicked',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion agent log
+    
+    // #region agent log
+    const tokenBefore = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin/page.tsx:handleLogout',message:'Before logout - token check',data:{hasToken:!!tokenBefore},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion agent log
+    
+    logout();
+    
+    // #region agent log
+    const tokenAfter = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin/page.tsx:handleLogout',message:'After logout - token check',data:{hasToken:!!tokenAfter},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion agent log
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin/page.tsx:handleLogout',message:'Redirecting to login',data:{targetPath:'/login'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion agent log
+    
     router.push("/login");
   };
 
   return (
-    <div className={styles.adminBody}>
-      {/* Top Status Bar */}
-      <div className={styles.statusBar}>
-        <span className={styles.statusText}>
-          <i className="fas fa-terminal"></i> SYSTEM: ADMIN_ACCESS_GRANTED |
-          USER: ADMIN_01
-        </span>
-        <div className={styles.statusIndicator}>
-          <span className={styles.indicatorDot}></span>
-          <span>ONLINE</span>
+    <div className={styles["admin-container"]}>
+      
+      {/* --- STATUS BAR (Đã cập nhật) --- */}
+      <div className={styles["status-bar"]}>
+        <div className={styles["status-bar-left"]}>
+            <div className={styles["status-item"]}>
+                <span className={styles["status-indicator"]}></span>
+                <span>SYSTEM: ONLINE</span>
+            </div>
+            
+            {/* Phần hiển thị tên Admin */}
+            <div className={styles["status-item"]}>
+                <User size={14} /> {/* Thêm icon user cho đẹp */}
+                <span style={{textTransform: 'uppercase'}}>ADMIN: {adminName}</span>
+            </div>
+        </div>
+
+        {/* Phần hiển thị Ngày & Giờ bên phải */}
+        <div className={styles["status-item"]}>
+            <span>{currentDateTime}</span>
         </div>
       </div>
 
-      {/* Sidebar */}
-      <div className={styles.sidebar}>
-        <div className={styles.sidebarHeader}>
-          <i className="fas fa-lock"></i> VSL_ADMIN
-          <br />
-          CORE
+      {/* --- SIDEBAR --- */}
+      <aside className={styles.sidebar}>
+        <div className={styles["sidebar-header"]}>
+           <div className="flex items-center gap-2">
+             <Lock size={16}/> VSL_ADMIN
+           </div>
+           CORE
         </div>
-        <ul className={styles.sidebarMenu}>
-          <li
-            className={`${styles.menuItem} ${styles.active}`}
-            onClick={() => navigateTo("dashboard")}
-          >
-            <i className="fas fa-chart-line"></i>
-            <span>[DASHBOARD]</span>
-          </li>
-          <li className={styles.menuItem} onClick={() => navigateTo("users")}>
-            <i className="fas fa-users"></i>
-            <span>[USER_MANAGER]</span>
-          </li>
-          <li
-            className={styles.menuItem}
-            onClick={() => navigateTo("contributions")}
-          >
-            <i className="fas fa-file-upload"></i>
-            <span>[CONTRIBUTIONS]</span>
-          </li>
-          <li
-            className={styles.menuItem}
-            onClick={() => navigateTo("dictionary")}
-          >
-            <i className="fas fa-book"></i>
-            <span>[DICTIONARY_DB]</span>
-          </li>
-          <li className={styles.menuItem} onClick={logout}>
-            <i className="fas fa-sign-out-alt"></i>
-            <span>[LOGOUT]</span>
+        
+        <ul className={styles["sidebar-menu"]}>
+          {menuItems.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+            
+            return (
+              <li key={item.href}>
+                <Link 
+                  href={item.href} 
+                  className={`${styles["menu-item"]} ${isActive ? styles["menu-item-active"] : ""}`}
+                >
+                  <span className={styles["icon-wrapper"]}><Icon size={16}/></span>
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+
+          <li>
+            <div 
+              className={styles["menu-item"]} 
+              style={{cursor: 'pointer'}}
+              onClick={handleLogout}
+            >
+               <span className={styles["icon-wrapper"]}><LogOut size={16}/></span>
+               <span>[LOGOUT]</span>
+            </div>
           </li>
         </ul>
-      </div>
+      </aside>
 
-      {/* Main Content */}
-      <div className={styles.mainContent}>
-        <h1 className={styles.pageTitle}>&gt; DASHBOARD_OVERVIEW</h1>
+      {/* --- MAIN CONTENT --- */}
+      <main className={styles["main-content"]}>
+        
+        <h1 className={styles["page-title"]}>
+          <Terminal size={28} />
+          SYSTEM OVERVIEW
+        </h1>
 
-        <div className={styles.statsGrid}>
-          {/* Total Users Card */}
-          <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <i className="fas fa-users"></i>
+        {error && (
+          <div style={{ 
+            padding: '12px', 
+            marginBottom: '20px', 
+            background: 'rgba(255,0,0,0.1)', 
+            border: '1px solid #ff0000',
+            color: '#ff0000',
+            fontSize: '12px'
+          }}>
+            ERROR: {error}
+          </div>
+        )}
+
+        <div className={styles["stats-grid"]}>
+          
+          <div className={styles["stat-card"]}>
+            <div className={styles["stat-icon"]}>
+              <Users size={32} />
             </div>
-            <div className={styles.statLabel}>TOTAL USERS</div>
-            <div className={styles.statValue}>
+            <div className={styles["stat-label"]}>TOTAL USERS</div>
+            <div className={styles["stat-value"]}>
               {loading ? "..." : stats.totalUsers.toLocaleString()}
             </div>
-            <div className={styles.statUnit}>active accounts</div>
+            <div className={styles["stat-unit"]}>registered accounts</div>
           </div>
 
-          {/* Total Words Card */}
-          <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <i className="fas fa-book"></i>
+          <div className={styles["stat-card"]}>
+            <div className={styles["stat-icon"]}>
+              <BookOpen size={32} />
             </div>
-            <div className={styles.statLabel}>TOTAL WORDS</div>
-            <div className={styles.statValue}>
+            <div className={styles["stat-label"]}>TOTAL WORDS</div>
+            <div className={styles["stat-value"]}>
               {loading ? "..." : stats.totalWords.toLocaleString()}
             </div>
-            <div className={styles.statUnit}>in database</div>
+            <div className={styles["stat-unit"]}>in database</div>
           </div>
 
-          {/* Pending Contributions Card (with alert) */}
-          <div className={`${styles.statCard} ${styles.alert}`}>
-            <div className={styles.statIcon}>
-              <i className="fas fa-exclamation-circle"></i>
+          <div className={`${styles["stat-card"]} ${styles["stat-card-alert"]}`}>
+            <div className={styles["stat-icon"]}>
+              <AlertCircle size={32} />
             </div>
-            <div className={styles.statLabel}>PENDING CONTRIBUTIONS</div>
-            <div className={styles.statValue}>
+            <div className={styles["stat-label"]}>PENDING CONTRIBUTIONS</div>
+            <div className={styles["stat-value"]}>
               {loading ? "..." : stats.pendingContributions}
             </div>
-            <div className={styles.statUnit}>awaiting review</div>
+            <div className={styles["stat-unit"]}>awaiting review</div>
           </div>
 
-          {/* System Uptime Card */}
-          <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <i className="fas fa-heartbeat"></i>
+          <div className={styles["stat-card"]}>
+            <div className={styles["stat-icon"]}>
+              <Activity size={32} />
             </div>
-            <div className={styles.statLabel}>SYSTEM UPTIME</div>
-            <div className={styles.statValue}>
-              {loading ? "..." : `${stats.systemUptime}%`}
-            </div>
-            <div className={styles.statUnit}>operational status</div>
+            <div className={styles["stat-label"]}>SYSTEM UPTIME</div>
+            <div className={styles["stat-value"]}>{stats.uptime}</div>
+            <div className={styles["stat-unit"]}>operational status</div>
           </div>
+
         </div>
-      </div>
+
+      </main>
     </div>
   );
 }

@@ -10,7 +10,7 @@ import styles from "../../styles/dashboard.module.css";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isGuest } = useAuthStore();
 
   // Search history state
   const [searchHistory, setSearchHistory] = useState<SearchHistoryDTO[]>([]);
@@ -125,16 +125,18 @@ export default function DashboardPage() {
 
   return (
     <div className={styles["dashboard-container"]}>
-      <button className={styles["back-button"]} onClick={() => router.back()}>
-        ← QUAY LẠI
-      </button>
-
       <div className={styles.content}>
         <div className={styles.header}>
           <div className={styles.title}>VSL PLATFORM</div>
           <div
             className={styles["user-icon"]}
-            onClick={() => router.push("/users")}
+            onClick={() => {
+              if (isAuthenticated) {
+                router.push("/users");
+              } else {
+                router.push("/login");
+              }
+            }}
           >
             👤
           </div>
@@ -278,9 +280,9 @@ export default function DashboardPage() {
                             {fav.word}
                           </h3>
                           <p className={styles["favorite-definition"]}>
-                            {fav.definition.length > 100
+                            {fav.definition && fav.definition.length > 100
                               ? fav.definition.substring(0, 100) + "..."
-                              : fav.definition}
+                              : fav.definition || "Chưa có định nghĩa"}
                           </p>
                           <p className={styles["favorite-date"]}>
                             💾 {formatDate(fav.savedAt)}
@@ -304,16 +306,30 @@ export default function DashboardPage() {
           </>
         )}
 
-        {/* Login prompt for unauthenticated users */}
+        {/* Guest mode info or login prompt */}
         {!isAuthenticated && (
           <div className={styles["login-prompt"]}>
-            <p>
-              🔒 Vui lòng{" "}
-              <Link href="/login" className={styles["login-link"]}>
-                đăng nhập
-              </Link>{" "}
-              để xem lịch sử và danh sách yêu thích.
-            </p>
+            {isGuest ? (
+              <p>
+                👤 Bạn đang sử dụng ở chế độ Guest.{" "}
+                <Link href="/login" className={styles["login-link"]}>
+                  Đăng nhập
+                </Link>{" "}
+                hoặc{" "}
+                <Link href="/register" className={styles["login-link"]}>
+                  đăng ký
+                </Link>{" "}
+                để lưu lịch sử và danh sách yêu thích.
+              </p>
+            ) : (
+              <p>
+                🔒 Vui lòng{" "}
+                <Link href="/login" className={styles["login-link"]}>
+                  đăng nhập
+                </Link>{" "}
+                để xem lịch sử và danh sách yêu thích.
+              </p>
+            )}
           </div>
         )}
       </div>

@@ -14,7 +14,7 @@ interface AuthStatus {
  * Returns: { isLoggedIn, userRole, username }
  */
 export function useAuthStatus(): AuthStatus {
-  const { isAuthenticated, role, username } = useAuthStore();
+  const { isAuthenticated, role, username, isGuest } = useAuthStore();
   const [authStatus, setAuthStatus] = useState<AuthStatus>({
     isLoggedIn: false,
     userRole: "GUEST",
@@ -22,8 +22,15 @@ export function useAuthStatus(): AuthStatus {
   });
 
   useEffect(() => {
-    // Check if user is authenticated and has valid role
-    if (isAuthenticated && role) {
+    // Check if user is in guest mode
+    if (isGuest && role === "GUEST") {
+      setAuthStatus({
+        isLoggedIn: false,
+        userRole: "GUEST",
+        username: username || "Guest",
+      });
+    } else if (isAuthenticated && role) {
+      // Check if user is authenticated and has valid role
       setAuthStatus({
         isLoggedIn: true,
         userRole: (role === "ADMIN" ? "ADMIN" : "USER") as UserRole,
@@ -36,7 +43,7 @@ export function useAuthStatus(): AuthStatus {
         username: null,
       });
     }
-  }, [isAuthenticated, role, username]);
+  }, [isAuthenticated, role, username, isGuest]);
 
   return authStatus;
 }

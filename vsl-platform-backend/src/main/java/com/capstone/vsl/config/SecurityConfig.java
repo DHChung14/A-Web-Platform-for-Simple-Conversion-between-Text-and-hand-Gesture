@@ -5,6 +5,7 @@ import com.capstone.vsl.security.RateLimitingFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod; // <--- QUAN TRỌNG: Import cái này
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -25,11 +26,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Security Configuration
- * Defines security rules, authentication, and authorization for the application.
- * Configured for Spring Boot 3.3 with Next.js frontend and stateless JWT authentication.
- */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -47,7 +43,7 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        var authProvider = new DaoAuthenticationProvider();
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
@@ -59,34 +55,25 @@ public class SecurityConfig {
     }
 
     /**
-     * CORS Configuration Source
-     * Configures CORS for Next.js Frontend (and Vite as backup)
-     * 
-     * Allowed Origins:
-     * - http://localhost:3000 (Primary - Next.js)
-     * - http://localhost:5173 (Backup - Vite)
-     * - http://localhost:8080 (Self - Backend)
-     * 
-     * Important: When allowCredentials is true, you cannot use "*" for allowedOrigins.
-     * Must specify exact origins.
+     * CẤU HÌNH CORS CHUẨN
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        var corsConfig = new CorsConfiguration();
+        CorsConfiguration corsConfig = new CorsConfiguration();
         
-        // Allow specific frontend origins
+        // 1. Allowed Origins
         corsConfig.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",  // Primary - Next.js
-                "http://localhost:5173",  // Backup - Vite
-                "http://localhost:8080"   // Self - Backend
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "http://localhost:8080"
         ));
         
-        // Allow specific HTTP methods
+        // 2. Allowed Methods (Bao gồm OPTIONS)
         corsConfig.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS"
+                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"
         ));
         
-        // Allow specific headers (including Authorization for Bearer token and CORS preflight headers)
+        // 3. Allowed Headers
         corsConfig.setAllowedHeaders(Arrays.asList(
                 "Authorization",
                 "Content-Type",
@@ -97,75 +84,47 @@ public class SecurityConfig {
                 "Access-Control-Request-Headers"
         ));
         
-        // Allow credentials (cookies, authorization headers)
+        // 4. Credentials & Exposed Headers
         corsConfig.setAllowCredentials(true);
-        
-        // Expose Authorization header to frontend
         corsConfig.setExposedHeaders(List.of("Authorization"));
         
-        // Apply CORS configuration to all paths
-        var source = new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfig);
-        
         return source;
     }
 
-    /**
-     * Security Filter Chain
-     * Configures the security filter chain using Lambda DSL (Spring Security 6 standard)
-     * 
-     * Security Rules:
-     * - CSRF disabled (not needed for stateless REST API)
-     * - CORS enabled with custom configuration
-     * - Stateless session management (JWT-based)
-     * - Public endpoints: auth, dictionary search, VSL endpoints (recognize/spell), Swagger UI
-     * - User endpoints require authentication
-     * - Admin endpoints require ROLE_ADMIN
-     * - All other requests require authentication
-     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF for stateless JWT authentication (REST API)
             .csrf(csrf -> csrf.disable())
-            
-            // Enable CORS with custom configuration source
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            
-            // Set session creation policy to STATELESS (JWT-based)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             
-            // Configure authorization rules
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints (no authentication required)
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/vsl/**").permitAll()  // Gesture recognition and spelling (public)
-                .requestMatchers("/api/dictionary/search/**").permitAll()
-                .requestMatchers("/api/dictionary/detail/**").permitAll()
-                
-                // Swagger UI endpoints (public for development)
-                .requestMatchers("/v3/api-docs/**").permitAll()
-                .requestMatchers("/swagger-ui/**").permitAll()
-                .requestMatchers("/swagger-ui.html").permitAll()
-                
-                // User endpoints (require authenticated user/admin)
-                .requestMatchers("/api/user/favorites/**").hasAnyRole("USER", "ADMIN")
-                .requestMatchers("/api/user/contributions/**").hasAnyRole("USER", "ADMIN")
-                .requestMatchers("/api/user/reports/**").hasAnyRole("USER", "ADMIN")
-                .requestMatchers("/api/user/profile/**").hasAnyRole("USER", "ADMIN")
-                .requestMatchers("/api/user/history/**").hasAnyRole("USER", "ADMIN")
+                // --- [QUAN TRỌNG] FIX LỖI CORS ---
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            
+                // --- PUBLIC ENDPOINTS (Xóa /v1 để khớp với Controller) ---
+                .requestMatchers("/api/auth/**").permitAll()                 // Đã sửa
+                .requestMatchers("/api/recognition/**").permitAll()          // Đã sửa
+                .requestMatchers("/api/spelling/**").permitAll()             // Đã sửa
+                .requestMatchers("/api/dictionary/search/**").permitAll()    // QUAN TRỌNG: Sửa dòng này để Healthcheck qua được
+                .requestMatchers("/api/dictionary/detail/**").permitAll()    // Đã sửa
+                .requestMatchers("/api/vsl/**").permitAll() // VSL gesture recognition endpoints
 
-                // Admin endpoints (strictly ROLE_ADMIN)
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 
-                // All other requests require authentication
+                // Swagger UI
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                
+                // --- PRIVATE ENDPOINTS ---
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")           // Đã sửa
+                .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN") // Đã sửa
+                
+                // --- MẶC ĐỊNH ---
                 .anyRequest().authenticated()
             )
             
-            // Set authentication provider
             .authenticationProvider(authenticationProvider())
-            
-            // Add filters before the standard UsernamePasswordAuthenticationFilter
             .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

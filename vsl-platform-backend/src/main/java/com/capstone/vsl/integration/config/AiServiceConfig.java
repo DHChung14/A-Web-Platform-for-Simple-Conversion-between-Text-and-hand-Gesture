@@ -16,7 +16,7 @@ import java.time.Duration;
 @Configuration
 public class AiServiceConfig {
 
-    @Value("${ai.service.url:http://localhost:5000/predict}")
+    @Value("${ai.service.url:http://localhost:5000}")
     private String aiServiceUrl;
 
     @Value("${ai.service.timeout:10000}")

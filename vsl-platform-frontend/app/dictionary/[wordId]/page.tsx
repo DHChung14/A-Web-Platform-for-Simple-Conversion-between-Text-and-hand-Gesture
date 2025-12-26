@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import apiClient from "@/lib/api-client";
+import { getVideoInfo } from "@/lib/video-utils";
 import {
   ApiResponse,
   DictionaryDTO,
@@ -83,7 +84,7 @@ export default function WordDetailPage() {
    *
    * API Contract:
    * - Endpoint: GET /api/user/favorites/check/{wordId}
-   * - Response: ApiResponse<boolean>
+   * - Response: ApiResponse<{wordId, isFavorite}>
    * - Requires authentication
    */
   useEffect(() => {
@@ -93,12 +94,12 @@ export default function WordDetailPage() {
       console.log(`[WordDetail] Checking favorite status for word ${wordId}`);
 
       try {
-        const response = await apiClient.get<ApiResponse<boolean>>(
+        const response = await apiClient.get<ApiResponse<{wordId: number, isFavorite: boolean}>>(
           `/user/favorites/check/${wordId}`
         );
 
-        if (response.data.code === 200) {
-          const favoriteStatus = response.data.data;
+        if (response.data.code === 200 && response.data.data) {
+          const favoriteStatus = response.data.data.isFavorite;
           console.log(`[WordDetail] Favorite status: ${favoriteStatus}`);
           setIsFavorite(favoriteStatus);
         }
@@ -117,7 +118,7 @@ export default function WordDetailPage() {
    * API Contract:
    * - Endpoint: POST /api/user/favorites/{wordId}
    * - Body: empty (or can be omitted)
-   * - Response: ApiResponse<FavoriteToggleResponse>
+   * - Response: ApiResponse<{wordId, isFavorite}>
    * - Requires authentication
    */
   const handleToggleFavorite = async () => {
@@ -131,7 +132,7 @@ export default function WordDetailPage() {
 
     try {
       const response = await apiClient.post<
-        ApiResponse<FavoriteToggleResponse>
+        ApiResponse<{wordId: number, isFavorite: boolean}>
       >(`/user/favorites/${wordId}`, {});
 
       console.log(`[WordDetail] Toggle response:`, response.data);
@@ -249,22 +250,60 @@ export default function WordDetailPage() {
             <div className={styles["video-title"]}>VIDEO HƯỚNG DẪN</div>
             <div className={styles["video-container"]}>
               {word.videoUrl ? (
-                <video
-                  src={word.videoUrl}
-                  controls
-                  loop
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
-                    backgroundColor: "#000",
-                  }}
-                >
-                  Trình duyệt không hỗ trợ video
-                </video>
+                (() => {
+                  const videoInfo = getVideoInfo(word.videoUrl);
+                  
+                  if (videoInfo.type === 'youtube') {
+                    return (
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        src={videoInfo.embedUrl}
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        style={{ minHeight: "400px" }}
+                      />
+                    );
+                  }
+                  
+                  if (videoInfo.type === 'vimeo') {
+                    return (
+                      <iframe
+                        src={videoInfo.embedUrl}
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        allow="autoplay; fullscreen; picture-in-picture"
+                        allowFullScreen
+                        style={{ minHeight: "400px" }}
+                      />
+                    );
+                  }
+                  
+                  return (
+                    <video
+                      src={word.videoUrl}
+                      controls
+                      loop
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        backgroundColor: "#000",
+                        minHeight: "400px"
+                      }}
+                    >
+                      Trình duyệt không hỗ trợ video
+                    </video>
+                  );
+                })()
               ) : (
                 <div className={styles["video-placeholder"]}>
-                  🎥 Chưa có video hướng dẫn
+                  🎬 Chưa có video hướng dẫn
+                  <div style={{ fontSize: "12px", marginTop: "10px", opacity: 0.7 }}>
+                    Bạn có thể giúp chúng tôi bằng cách báo cáo và gợi ý video
+                  </div>
                 </div>
               )}
             </div>

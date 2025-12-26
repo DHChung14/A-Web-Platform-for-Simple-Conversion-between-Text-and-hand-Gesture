@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 /**
  * Recognition Controller
  * Handles gesture recognition requests from clients
@@ -37,7 +39,7 @@ public class RecognitionController {
      * @param input Gesture input with landmarks and current text context (validated)
      * @return Recognized Vietnamese text with accents
      */
-    @PostMapping("/recognize")
+    @PostMapping("/predict")
     public ResponseEntity<ApiResponse<String>> recognize(@Valid @RequestBody GestureInputDTO input) {
         var startTime = System.currentTimeMillis();
         
@@ -79,5 +81,56 @@ public class RecognitionController {
                     .body(ApiResponse.error("Recognition failed: " + e.getMessage()));
         }
     }
-}
 
+    /**
+     * POST /api/vsl/fix-diacritics
+     * Add Vietnamese diacritics to raw text
+     * Receives raw Vietnamese text (without diacritics) and returns with diacritics
+     *
+     * @param request Object with "text" field containing raw Vietnamese text
+     * @return Vietnamese text with proper diacritics
+     */
+    @PostMapping("/fix-diacritics")
+    public ResponseEntity<ApiResponse<String>> fixDiacritics(@RequestBody Map<String, String> request) {
+        var startTime = System.currentTimeMillis();
+        
+        try {
+            String rawText = request.get("text");
+            if (rawText == null || rawText.isBlank()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Text field is required and cannot be empty"));
+            }
+
+            log.info("Received fix-diacritics request for text: '{}'", rawText);
+
+            // Call AI service to add diacritics
+            var fixedText = gestureIntegrationService.fixDiacritics(rawText);
+            
+            var executionTime = System.currentTimeMillis() - startTime;
+            log.info("Diacritics restoration completed in {} ms. Original: '{}' → Fixed: '{}'", 
+                    executionTime, rawText, fixedText);
+
+            return ResponseEntity.ok(ApiResponse.success(
+                    String.format("Diacritics restoration completed in %d ms", executionTime),
+                    fixedText
+            ));
+
+        } catch (AiServiceUnavailableException e) {
+            var executionTime = System.currentTimeMillis() - startTime;
+            log.error("AI service unavailable (execution time: {} ms): {}", executionTime, e.getMessage());
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(ApiResponse.error("AI Service is offline: " + e.getMessage()));
+        } catch (ExternalServiceException e) {
+            var executionTime = System.currentTimeMillis() - startTime;
+            log.error("External service error (execution time: {} ms): {}", executionTime, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .body(ApiResponse.error("External service error: " + e.getMessage()));
+        } catch (Exception e) {
+            var executionTime = System.currentTimeMillis() - startTime;
+            log.error("Unexpected error during diacritics restoration (execution time: {} ms): {}", 
+                    executionTime, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Diacritics restoration failed: " + e.getMessage()));
+        }
+    }
+}

@@ -77,6 +77,18 @@ public class UserProfileService {
     }
 
     /**
+     * Get current user profile by username.
+     *
+     * @param username Current username (from authentication)
+     * @return User DTO
+     */
+    public UserDTO getProfile(String username) {
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+        return userToDTO(user);
+    }
+
+    /**
      * Convert User entity to DTO
      */
     private UserDTO userToDTO(User user) {
