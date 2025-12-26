@@ -27,13 +27,13 @@ export default function RegisterPage() {
 
     // Validate password match
     if (password !== confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp");
+      setError("Password confirmation does not match");
       return;
     }
 
     // Validate password strength (min 8 characters)
     if (password.length < 8) {
-      setError("Mật khẩu phải có ít nhất 8 ký tự");
+      setError("Password must be at least 8 characters");
       return;
     }
 
@@ -51,7 +51,7 @@ export default function RegisterPage() {
         login(authData);
         router.push("/dashboard");
       } else {
-        setError(response.data.message || "Đăng ký thất bại");
+        setError(response.data.message || "Registration failed");
       }
     } catch (err) {
       const error = err as {
@@ -61,7 +61,7 @@ export default function RegisterPage() {
       console.error("Registration error:", error);
       setError(
         error.response?.data?.message ||
-          "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin."
+          "Registration failed. Please check your information."
       );
     } finally {
       setIsLoading(false);
@@ -74,12 +74,12 @@ export default function RegisterPage() {
       <div className={styles.scanline} />
 
       <Link href="/" className={styles.backLink}>
-        ← Quay lại
+        ← Back
       </Link>
 
       <div className={styles.registerBox}>
         <div className={styles.registerHeader}>
-          <div className={styles.registerTitle}>ĐĂNG KÝ</div>
+          <div className={styles.registerTitle}>REGISTER</div>
           <div className={styles.registerSubtitle}>Create VSL Account</div>
         </div>
 
@@ -95,7 +95,7 @@ export default function RegisterPage() {
               id="email"
               name="email"
               className={styles.formInput}
-              placeholder="Nhập địa chỉ email"
+              placeholder="Enter email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -105,14 +105,14 @@ export default function RegisterPage() {
 
           <div className={styles.formGroup}>
             <label htmlFor="username" className={styles.formLabel}>
-              Tên đăng nhập
+              Username
             </label>
             <input
               type="text"
               id="username"
               name="username"
               className={styles.formInput}
-              placeholder="Chọn tên đăng nhập"
+              placeholder="Choose username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -122,7 +122,7 @@ export default function RegisterPage() {
 
           <div className={styles.formGroup}>
             <label htmlFor="password" className={styles.formLabel}>
-              Mật khẩu
+              Password
             </label>
             <div className={styles.inputContainer}>
               <input
@@ -130,7 +130,7 @@ export default function RegisterPage() {
                 id="password"
                 name="password"
                 className={styles.formInput}
-                placeholder="Tạo mật khẩu mạnh (ít nhất 8 ký tự)"
+                placeholder="Create strong password (at least 8 characters)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -149,7 +149,7 @@ export default function RegisterPage() {
 
           <div className={styles.formGroup}>
             <label htmlFor="confirm-password" className={styles.formLabel}>
-              Xác nhận mật khẩu
+              Confirm Password
             </label>
             <div className={styles.inputContainer}>
               <input
@@ -157,7 +157,7 @@ export default function RegisterPage() {
                 id="confirm-password"
                 name="confirm-password"
                 className={styles.formInput}
-                placeholder="Nhập lại mật khẩu"
+                placeholder="Re-enter password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
@@ -177,8 +177,8 @@ export default function RegisterPage() {
           <label className={styles.termsLabel}>
             <input type="checkbox" name="terms" required disabled={isLoading} />
             <span>
-              Tôi đồng ý với <a href="#">Điều khoản sử dụng</a> và{" "}
-              <a href="#">Chính sách bảo mật</a>
+              I agree to the <a href="#">Terms of Service</a> and{" "}
+              <a href="#">Privacy Policy</a>
             </span>
           </label>
 
@@ -187,16 +187,16 @@ export default function RegisterPage() {
             className={styles.registerButton}
             disabled={isLoading}
           >
-            {isLoading ? "Đang đăng ký..." : "Đăng ký"}
+            {isLoading ? "Registering..." : "Register"}
           </button>
         </form>
 
         <div className={styles.divider}>
-          <span className={styles.dividerText}>HOẶC</span>
+          <span className={styles.dividerText}>OR</span>
         </div>
 
         <div className={styles.loginLink}>
-          Đã có tài khoản? <Link href="/login">Đăng nhập ngay</Link>
+          Already have an account? <Link href="/login">Log in now</Link>
         </div>
       </div>
     </div>

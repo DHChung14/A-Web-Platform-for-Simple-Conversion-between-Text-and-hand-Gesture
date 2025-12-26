@@ -62,14 +62,14 @@ export default function WordDetailPage() {
           );
           setWord(response.data.data);
         } else {
-          const errorMsg = response.data.message || "Không tìm thấy từ vựng";
+          const errorMsg = response.data.message || "Word not found";
           console.warn(`[WordDetail] Error:`, errorMsg);
           setError(errorMsg);
         }
       } catch (err: any) {
         console.error("[WordDetail] Fetch error:", err);
         setError(
-          err.response?.data?.message || "Lỗi khi tải thông tin từ vựng"
+          err.response?.data?.message || "Error loading word information"
         );
       } finally {
         setIsLoading(false);
@@ -123,7 +123,7 @@ export default function WordDetailPage() {
    */
   const handleToggleFavorite = async () => {
     if (!isAuthenticated) {
-      alert("Vui lòng đăng nhập để sử dụng tính năng yêu thích");
+      alert("Please log in to use the favorite feature");
       return;
     }
 
@@ -146,7 +146,7 @@ export default function WordDetailPage() {
       console.error("[WordDetail] Error toggling favorite:", err);
       alert(
         err.response?.data?.message ||
-          "Lỗi khi thay đổi trạng thái yêu thích. Vui lòng thử lại."
+          "Error changing favorite status. Please try again."
       );
     } finally {
       setIsFavoriteLoading(false);
@@ -164,12 +164,12 @@ export default function WordDetailPage() {
    */
   const handleSubmitReport = async () => {
     if (!isAuthenticated) {
-      alert("Vui lòng đăng nhập để báo cáo");
+      alert("Please log in to submit a report");
       return;
     }
 
     if (!reportReason.trim()) {
-      alert("Vui lòng nhập lý do báo cáo");
+      alert("Please enter a report reason");
       return;
     }
 
@@ -193,7 +193,7 @@ export default function WordDetailPage() {
 
       if (response.data.code === 200 || response.data.code === 201) {
         console.log(`[WordDetail] Report submitted successfully`);
-        setReportSuccess("Báo cáo đã được gửi thành công!");
+        setReportSuccess("Report submitted successfully!");
         setReportReason("");
         setTimeout(() => {
           setShowReportModal(false);
@@ -203,7 +203,7 @@ export default function WordDetailPage() {
     } catch (err: any) {
       console.error("[WordDetail] Error submitting report:", err);
       alert(
-        err.response?.data?.message || "Lỗi khi gửi báo cáo. Vui lòng thử lại."
+        err.response?.data?.message || "Error submitting report. Please try again."
       );
     } finally {
       setIsReportSubmitting(false);
@@ -214,7 +214,7 @@ export default function WordDetailPage() {
     return (
       <div className={styles["word-detail-container"]}>
         <div style={{ textAlign: "center", padding: "40px" }}>
-          ⏳ Đang tải...
+          ⏳ Loading...
         </div>
       </div>
     );
@@ -224,10 +224,10 @@ export default function WordDetailPage() {
     return (
       <div className={styles["word-detail-container"]}>
         <Link href="/dictionary" className={styles["back-button"]}>
-          ← Quay lại từ điển
+          ← Back to dictionary
         </Link>
         <div style={{ textAlign: "center", padding: "40px", color: "#ff4444" }}>
-          {error || "Không tìm thấy từ vựng"}
+          {error || "Word not found"}
         </div>
       </div>
     );
@@ -238,7 +238,7 @@ export default function WordDetailPage() {
       {/* Header */}
       <div className={styles["detail-header"]}>
         <Link href="/dictionary" className={styles["back-button"]}>
-          ← Quay lại từ điển
+          ← Back to dictionary
         </Link>
         <div className={styles["word-title"]}>{word.word.toUpperCase()}</div>
       </div>
@@ -247,63 +247,25 @@ export default function WordDetailPage() {
         {/* Video Section */}
         <div className={styles["main-section"]}>
           <div className={styles["video-section"]}>
-            <div className={styles["video-title"]}>VIDEO HƯỚNG DẪN</div>
+            <div className={styles["video-title"]}>TUTORIAL VIDEO</div>
             <div className={styles["video-container"]}>
               {word.videoUrl ? (
-                (() => {
-                  const videoInfo = getVideoInfo(word.videoUrl);
-                  
-                  if (videoInfo.type === 'youtube') {
-                    return (
-                      <iframe
-                        width="100%"
-                        height="100%"
-                        src={videoInfo.embedUrl}
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        style={{ minHeight: "400px" }}
-                      />
-                    );
-                  }
-                  
-                  if (videoInfo.type === 'vimeo') {
-                    return (
-                      <iframe
-                        src={videoInfo.embedUrl}
-                        width="100%"
-                        height="100%"
-                        frameBorder="0"
-                        allow="autoplay; fullscreen; picture-in-picture"
-                        allowFullScreen
-                        style={{ minHeight: "400px" }}
-                      />
-                    );
-                  }
-                  
-                  return (
-                    <video
-                      src={word.videoUrl}
-                      controls
-                      loop
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "contain",
-                        backgroundColor: "#000",
-                        minHeight: "400px"
-                      }}
-                    >
-                      Trình duyệt không hỗ trợ video
-                    </video>
-                  );
-                })()
+                <video
+                  src={word.videoUrl}
+                  controls
+                  loop
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    backgroundColor: "#000",
+                  }}
+                >
+                  Trình duyệt không hỗ trợ video
+                </video>
               ) : (
                 <div className={styles["video-placeholder"]}>
-                  🎬 Chưa có video hướng dẫn
-                  <div style={{ fontSize: "12px", marginTop: "10px", opacity: 0.7 }}>
-                    Bạn có thể giúp chúng tôi bằng cách báo cáo và gợi ý video
-                  </div>
+                  🎥 Chưa có video hướng dẫn
                 </div>
               )}
             </div>
@@ -311,7 +273,7 @@ export default function WordDetailPage() {
 
           {/* Metadata Section */}
           <div className={styles["metadata-section"]}>
-            <div className={styles["metadata-title"]}>THÔNG TIN</div>
+            <div className={styles["metadata-title"]}>INFORMATION</div>
 
             <div className={styles["metadata-item"]}>
               <div className={styles["metadata-label"]}>ID</div>
@@ -320,25 +282,25 @@ export default function WordDetailPage() {
 
             {word.createdBy && (
               <div className={styles["metadata-item"]}>
-                <div className={styles["metadata-label"]}>Tạo bởi</div>
+                <div className={styles["metadata-label"]}>Created by</div>
                 <div className={styles["metadata-value"]}>{word.createdBy}</div>
               </div>
             )}
 
             {word.createdAt && (
               <div className={styles["metadata-item"]}>
-                <div className={styles["metadata-label"]}>Đã thêm</div>
+                <div className={styles["metadata-label"]}>Added</div>
                 <div className={styles["metadata-value"]}>
-                  {new Date(word.createdAt).toLocaleDateString("vi-VN")}
+                  {new Date(word.createdAt).toLocaleDateString("en-US")}
                 </div>
               </div>
             )}
 
             {word.updatedAt && (
               <div className={styles["metadata-item"]}>
-                <div className={styles["metadata-label"]}>Cập nhật</div>
+                <div className={styles["metadata-label"]}>Updated</div>
                 <div className={styles["metadata-value"]}>
-                  {new Date(word.updatedAt).toLocaleDateString("vi-VN")}
+                  {new Date(word.updatedAt).toLocaleDateString("en-US")}
                 </div>
               </div>
             )}
@@ -356,15 +318,15 @@ export default function WordDetailPage() {
                 {isFavoriteLoading
                   ? "⏳"
                   : isFavorite
-                  ? "⭐ Đã yêu thích"
-                  : "☆ Yêu thích"}
+                  ? "⭐ Favorited"
+                  : "☆ Favorite"}
               </button>
               <button
                 className={styles.btn}
                 onClick={() => setShowReportModal(true)}
                 disabled={!isAuthenticated}
               >
-                🚨 Báo cáo
+                🚨 Report
               </button>
             </div>
 
@@ -378,9 +340,9 @@ export default function WordDetailPage() {
                 }}
               >
                 <Link href="/login" style={{ color: "#00ff41" }}>
-                  Đăng nhập
+                  Log in
                 </Link>{" "}
-                để sử dụng tính năng này
+                to use this feature
               </div>
             )}
           </div>
@@ -388,31 +350,31 @@ export default function WordDetailPage() {
 
         {/* Description Section */}
         <div className={styles["description-section"]}>
-          <div className={styles["section-title"]}>MÔ TẢ</div>
+          <div className={styles["section-title"]}>DESCRIPTION</div>
           <p className={styles["description-text"]}>
-            {word.definition || "Chưa có mô tả cho từ vựng này."}
+            {word.definition || "No description available for this word."}
           </p>
         </div>
 
         {/* Related Words */}
         <div className={styles["related-words"]}>
-          <div className={styles["section-title"]}>TỪ LIÊN QUAN</div>
+          <div className={styles["section-title"]}>RELATED WORDS</div>
           <div className={styles["related-grid"]}>
             <div className={styles["related-card"]}>
               <div className={styles["related-icon"]}>👋</div>
-              <div className={styles["related-name"]}>Tạm biệt</div>
+              <div className={styles["related-name"]}>Goodbye</div>
             </div>
             <div className={styles["related-card"]}>
               <div className={styles["related-icon"]}>🙏</div>
-              <div className={styles["related-name"]}>Cảm ơn</div>
+              <div className={styles["related-name"]}>Thank you</div>
             </div>
             <div className={styles["related-card"]}>
               <div className={styles["related-icon"]}>😊</div>
-              <div className={styles["related-name"]}>Vui vẻ</div>
+              <div className={styles["related-name"]}>Happy</div>
             </div>
             <div className={styles["related-card"]}>
               <div className={styles["related-icon"]}>🤝</div>
-              <div className={styles["related-name"]}>Gặp gỡ</div>
+              <div className={styles["related-name"]}>Meet</div>
             </div>
           </div>
         </div>
@@ -454,7 +416,7 @@ export default function WordDetailPage() {
                 textTransform: "uppercase",
               }}
             >
-              🚨 Báo cáo vấn đề
+              🚨 Report Issue
             </h3>
 
             {reportSuccess ? (
@@ -471,18 +433,18 @@ export default function WordDetailPage() {
               <>
                 <div style={{ marginBottom: "15px" }}>
                   <div style={{ color: "#888", marginBottom: "8px" }}>
-                    Từ vựng:{" "}
+                    Word:{" "}
                     <strong style={{ color: "#fff" }}>{word.word}</strong>
                   </div>
                   <div style={{ color: "#888", fontSize: "14px" }}>
-                    Vui lòng mô tả vấn đề bạn gặp phải với từ vựng này
+                    Please describe the issue you encountered with this word
                   </div>
                 </div>
 
                 <textarea
                   value={reportReason}
                   onChange={(e) => setReportReason(e.target.value)}
-                  placeholder="Ví dụ: Video không chính xác, định nghĩa sai..."
+                  placeholder="Example: Video is inaccurate, definition is wrong..."
                   disabled={isReportSubmitting}
                   style={{
                     width: "100%",
@@ -519,7 +481,7 @@ export default function WordDetailPage() {
                       fontSize: "14px",
                     }}
                   >
-                    Hủy
+                    Cancel
                   </button>
                   <button
                     onClick={handleSubmitReport}
@@ -538,7 +500,7 @@ export default function WordDetailPage() {
                       fontWeight: "bold",
                     }}
                   >
-                    {isReportSubmitting ? "⏳ Đang gửi..." : "Gửi báo cáo"}
+                    {isReportSubmitting ? "⏳ Submitting..." : "Submit Report"}
                   </button>
                 </div>
               </>

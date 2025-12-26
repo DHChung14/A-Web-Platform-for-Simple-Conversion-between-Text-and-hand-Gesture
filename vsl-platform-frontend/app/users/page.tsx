@@ -40,7 +40,7 @@ export default function ProfilePage() {
         fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'users/page.tsx:fetchProfile',message:'Before API call - token check',data:{hasToken:!!token},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
         // #endregion agent log
         
-        console.log("🚀 Đang gọi API lấy thông tin...");
+        console.log("🚀 Calling API to get information...");
         const response = await apiClient.get<ApiResponse<UserDTO>>("/user/profile");
         
         // #region agent log
@@ -57,7 +57,7 @@ export default function ProfilePage() {
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'users/page.tsx:fetchProfile',message:'API call failed',data:{error:error.message,status:error.response?.status,statusText:error.response?.statusText},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
         // #endregion agent log
-        console.error("Lỗi lấy thông tin:", error);
+        console.error("Error fetching information:", error);
       } finally {
         setIsLoading(false);
         // #region agent log
@@ -74,17 +74,17 @@ export default function ProfilePage() {
     setPasswordError(null); setPasswordSuccess(null);
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordError("Mật khẩu xác nhận không khớp"); return;
+      setPasswordError("Password confirmation does not match"); return;
     }
     setIsPasswordChanging(true);
     try {
       await apiClient.put<ApiResponse<null>>("/user/profile/password", {
         oldPassword: passwordForm.oldPassword, newPassword: passwordForm.newPassword
       });
-      setPasswordSuccess("✓ Đổi mật khẩu thành công!");
+      setPasswordSuccess("✓ Password changed successfully!");
       setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
     } catch (err: any) {
-      setPasswordError(err.response?.data?.message || "Đổi mật khẩu thất bại");
+      setPasswordError(err.response?.data?.message || "Failed to change password");
     } finally {
       setIsPasswordChanging(false);
     }
@@ -120,13 +120,13 @@ export default function ProfilePage() {
       } else {
         setUser({ ...user, ...updatedData }); // Fallback: cập nhật local state
       }
-      alert("Cập nhật thành công!");
+      alert("Update successful!");
       setShowEditModal(false);
     } catch (error: any) {
       // #region agent log
       fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'users/page.tsx:handleEditProfile',message:'Profile update failed',data:{error:error.message,status:error.response?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
       // #endregion agent log
-      alert("Cập nhật thất bại!");
+      alert("Update failed!");
     }
   };
 
@@ -171,8 +171,8 @@ export default function ProfilePage() {
         <div className={styles["status-left"]}>
           <div className={styles["status-item"]}><div className={styles["status-indicator"]}></div><span>&gt; SYSTEM: ONLINE</span></div>
         </div>
-        <div className={styles["status-right"]}>
-          <div className={styles["status-item"]}><span>USER_ID: [ {user.id} ]</span></div>
+          <div className={styles["status-right"]}>
+          <div className={styles["status-item"]}><span>USER ID: [ {user.id} ]</span></div>
         </div>
       </div>
 
@@ -184,8 +184,8 @@ export default function ProfilePage() {
           <div className={styles.username}>{user.username}</div>
           <div className={styles["nav-tabs"]}>
             <button className={`${styles["nav-tab"]} ${activeTab === "overview" ? styles.active : ""}`} onClick={() => setActiveTab("overview")}>OVERVIEW</button>
-            <button className={`${styles["nav-tab"]} ${activeTab === "history" ? styles.active : ""}`} onClick={() => setActiveTab("history")}>HISTORY_LOG</button>
-            <button className={`${styles["nav-tab"]} ${activeTab === "favorites" ? styles.active : ""}`} onClick={() => setActiveTab("favorites")}>FAVORITE_DATA</button>
+            <button className={`${styles["nav-tab"]} ${activeTab === "history" ? styles.active : ""}`} onClick={() => setActiveTab("history")}>HISTORY LOG</button>
+            <button className={`${styles["nav-tab"]} ${activeTab === "favorites" ? styles.active : ""}`} onClick={() => setActiveTab("favorites")}>FAVORITE DATA</button>
             <button className={`${styles["nav-tab"]} ${activeTab === "settings" ? styles.active : ""}`} onClick={() => setActiveTab("settings")}>SETTINGS</button>
           </div>
           <div style={{marginTop: "2rem", display: "flex", flexDirection: "column", gap: "0.75rem"}}>
@@ -224,7 +224,7 @@ export default function ProfilePage() {
                     <div className={styles["spec-item"]}><div className={styles["spec-label"]}>&gt; ADDRESS:</div><div className={styles["spec-value"]}>{user.address || "N/A"}</div></div>
                     <div className={styles["spec-item"]}><div className={styles["spec-label"]}>&gt; ROLE:</div><div className={styles["spec-value"]}>[ {user.role} ]</div></div>
                   </div>
-                  <button className={styles["edit-button"]} onClick={() => setShowEditModal(true)}>[ EDIT_PROFILE ]</button>
+                  <button className={styles["edit-button"]} onClick={() => setShowEditModal(true)}>[ EDIT PROFILE ]</button>
                 </div>
               </div>
             </div>
@@ -240,10 +240,10 @@ export default function ProfilePage() {
               <form className={styles["settings-form"]} onSubmit={handlePasswordChange}>
                 {passwordError && <div className={styles["error-message"]}>⚠️ {passwordError}</div>}
                 {passwordSuccess && <div className={styles["success-message"]}>{passwordSuccess}</div>}
-                <div className={styles["form-group"]}><label className={styles["form-label"]}>OLD_PASSWORD</label><input type="password" className={styles["form-input"]} value={passwordForm.oldPassword} onChange={(e) => setPasswordForm({...passwordForm, oldPassword: e.target.value})} required disabled={isPasswordChanging} /></div>
-                <div className={styles["form-group"]}><label className={styles["form-label"]}>NEW_PASSWORD</label><input type="password" className={styles["form-input"]} value={passwordForm.newPassword} onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})} required disabled={isPasswordChanging} /></div>
-                <div className={styles["form-group"]}><label className={styles["form-label"]}>CONFIRM_PASSWORD</label><input type="password" className={styles["form-input"]} value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})} required disabled={isPasswordChanging} /></div>
-                <button type="submit" className={styles["form-button"]} disabled={isPasswordChanging}>{isPasswordChanging ? "PROCESSING..." : "CHANGE_PASSWORD"}</button>
+                <div className={styles["form-group"]}><label className={styles["form-label"]}>OLD PASSWORD</label><input type="password" className={styles["form-input"]} value={passwordForm.oldPassword} onChange={(e) => setPasswordForm({...passwordForm, oldPassword: e.target.value})} required disabled={isPasswordChanging} /></div>
+                <div className={styles["form-group"]}><label className={styles["form-label"]}>NEW PASSWORD</label><input type="password" className={styles["form-input"]} value={passwordForm.newPassword} onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})} required disabled={isPasswordChanging} /></div>
+                <div className={styles["form-group"]}><label className={styles["form-label"]}>CONFIRM PASSWORD</label><input type="password" className={styles["form-input"]} value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})} required disabled={isPasswordChanging} /></div>
+                <button type="submit" className={styles["form-button"]} disabled={isPasswordChanging}>{isPasswordChanging ? "PROCESSING..." : "CHANGE PASSWORD"}</button>
               </form>
             </div>
           )}
@@ -254,17 +254,17 @@ export default function ProfilePage() {
         <div className={`${styles.modal} ${styles.active}`}>
           <div className={styles["modal-content"]}>
             <button className={styles["modal-close-btn"]} onClick={() => setShowEditModal(false)}>×</button>
-            <div className={styles["modal-title"]}>&gt; EDIT_PROFILE</div>
+            <div className={styles["modal-title"]}>&gt; EDIT PROFILE</div>
             <form className={styles["modal-form"]} onSubmit={handleEditProfile}>
-              <div className={styles["form-group"]}><label className={styles["form-label"]}>FULL_NAME</label><input name="fullName" className={styles["form-input"]} defaultValue={user.fullName || ""} required /></div>
+              <div className={styles["form-group"]}><label className={styles["form-label"]}>FULL NAME</label><input name="fullName" className={styles["form-input"]} defaultValue={user.fullName || ""} required /></div>
               <div className={styles["form-group"]}><label className={styles["form-label"]}>PHONE</label><input name="phoneNumber" className={styles["form-input"]} defaultValue={user.phoneNumber || ""} /></div>
               <div className={styles["form-group"]}><label className={styles["form-label"]}>BIRTH</label><input name="dateOfBirth" type="date" className={styles["form-input"]} defaultValue={user.dateOfBirth || ""} /></div>
               <div className={styles["form-group"]}><label className={styles["form-label"]}>ADDRESS</label><input name="address" className={styles["form-input"]} defaultValue={user.address || ""} /></div>
               <div className={styles["form-group"]}><label className={styles["form-label"]}>BIO</label><textarea name="bio" className={styles["form-input"]} rows={3} defaultValue={user.bio || ""} ></textarea></div>
-              <div className={styles["form-group"]}><label className={styles["form-label"]}>AVATAR_URL</label><input name="avatarUrl" className={styles["form-input"]} defaultValue={user.avatarUrl || ""} placeholder="https://..." /></div>
+              <div className={styles["form-group"]}><label className={styles["form-label"]}>AVATAR URL</label><input name="avatarUrl" className={styles["form-input"]} defaultValue={user.avatarUrl || ""} placeholder="https://..." /></div>
               <div className={styles["modal-button-group"]}>
                 <button type="button" className={`${styles["modal-button"]} ${styles.cancel}`} onClick={() => setShowEditModal(false)}>CANCEL</button>
-                <button type="submit" className={styles["modal-button"]}>SAVE_CHANGES</button>
+                <button type="submit" className={styles["modal-button"]}>SAVE CHANGES</button>
               </div>
             </form>
           </div>

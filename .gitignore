@@ -1,4 +1,7 @@
 vsl-platform-backend/postgres-data/
+vsl-platform-backend/elasticsearch-data/
+.cursor/
+
 #docker-compose up -d --build backend
 # Cách 1: Xem logs cuối cùng
 # docker-compose logs backend | Select-Object -Last 50

@@ -79,7 +79,7 @@ export const recognitionApi = {
       
       // Backend returns: {code, message, data: "Vietnamese text"}
       // Extract the Vietnamese text from response.data
-      const vietnameseText = response.data?.data || response.data?.result || "Không nhận diện được";
+      const vietnameseText = response.data?.data || response.data?.result || "Unable to recognize";
       
       // For backward compatibility with UI expecting confidence field
       // We don't have real confidence, so return a simple response

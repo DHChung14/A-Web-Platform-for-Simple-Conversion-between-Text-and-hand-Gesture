@@ -103,9 +103,9 @@ export default function AdminContributionsPage() {
   // Menu Config
   const menuItems = [
     { label: "[DASHBOARD]", href: "/admin", icon: LayoutDashboard },
-    { label: "[USER_MANAGEMENT]", href: "/admin/users", icon: Users },
+    { label: "[USER MANAGEMENT]", href: "/admin/users", icon: Users },
     { label: "[CONTRIBUTIONS]", href: "/admin/contributions", icon: FileText },
-    { label: "[DICTIONARY_DB]", href: "/admin/dictionary", icon: BookOpen },
+    { label: "[DICTIONARY DATABASE]", href: "/admin/dictionary", icon: BookOpen },
   ];
 
   // #region agent log
@@ -179,7 +179,7 @@ export default function AdminContributionsPage() {
       <aside className={styles.sidebar}>
         <div className={styles["sidebar-header"]}>
            <div className="flex items-center gap-2">
-             <Lock size={16}/> VSL_ADMIN
+             <Lock size={16}/> VSL ADMIN
            </div>
            CORE
         </div>
@@ -289,7 +289,7 @@ export default function AdminContributionsPage() {
              <div className={styles["empty-state-icon"]}>
                 <CheckCircle size={64} />
              </div>
-             <div>{">"} SYSTEM: ALL_DATA_PROCESSED. QUEUE_EMPTY.</div>
+             <div>{">"} SYSTEM: ALL DATA PROCESSED. QUEUE EMPTY.</div>
           </div>
         )}
       </main>

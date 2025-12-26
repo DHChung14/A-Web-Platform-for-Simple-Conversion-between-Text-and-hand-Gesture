@@ -20,7 +20,7 @@ export interface UserDTO {
   avatarUrl?: string | null;
   bio?: string | null;
   address?: string | null;
-  role: string; // "ADMIN" | "USER" | "MODERATOR"
+  role: string; // "ADMIN" | "USER"
   createdAt: string; // ISO date-time string
   updatedAt: string; // ISO date-time string
 }

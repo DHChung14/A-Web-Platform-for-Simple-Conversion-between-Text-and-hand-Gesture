@@ -60,7 +60,7 @@ export default function DictionaryPage() {
         );
         setResults(foundResults);
       } else {
-        const errorMsg = response.data.message || "Không tìm thấy kết quả";
+        const errorMsg = response.data.message || "No results found";
         console.warn(`[Dictionary] No results or error:`, errorMsg);
         setError(errorMsg);
         setResults([]);
@@ -68,7 +68,7 @@ export default function DictionaryPage() {
     } catch (err: any) {
       console.error("[Dictionary] Search error:", err);
       setError(
-        err.response?.data?.message || "Lỗi khi tìm kiếm. Vui lòng thử lại."
+        err.response?.data?.message || "Error searching. Please try again."
       );
       setResults([]);
     } finally {
@@ -107,21 +107,21 @@ export default function DictionaryPage() {
   return (
     <div className={styles["dictionary-container"]}>
       <Link href="/dashboard" className={styles["back-link"]}>
-        ← QUAY LẠI
+        ← BACK
       </Link>
 
       {/* Hero Section */}
       <div className={styles["hero-section"]}>
-        <h1 className={styles["hero-title"]}>TỪ ĐIỂN VSL</h1>
+        <h1 className={styles["hero-title"]}>VSL DICTIONARY</h1>
         <p className={styles["hero-subtitle"]}>
-          Khám phá thư viện ngôn ngữ ký hiệu Việt Nam
+          Explore the Vietnamese Sign Language library
         </p>
 
         <div className={styles["search-zone"]}>
           <input
             type="text"
             className={styles["search-input"]}
-            placeholder="🔍 Tìm kiếm từ vựng..."
+            placeholder="🔍 Search vocabulary..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -132,12 +132,12 @@ export default function DictionaryPage() {
       <div className={styles["content-section"]}>
         <div className={styles["section-header"]}>
           <h2 className={styles["section-title"]}>
-            {searchQuery ? "KẾT QUẢ TÌM KIẾM" : "TẤT CẢ TỪ VỰNG"}
+            {searchQuery ? "SEARCH RESULTS" : "ALL WORDS"}
           </h2>
           <div className={styles["result-count"]}>
             {isLoading
-              ? "Đang tìm kiếm..."
-              : `Tìm thấy ${results.length} kết quả`}
+              ? "Searching..."
+              : `Found ${results.length} results`}
           </div>
         </div>
 
@@ -151,13 +151,13 @@ export default function DictionaryPage() {
 
         {!isLoading && !error && results.length === 0 && searchQuery && (
           <div style={{ textAlign: "center", padding: "40px", opacity: 0.7 }}>
-            Không tìm thấy từ vựng phù hợp với &quot;{searchQuery}&quot;
+            No vocabulary found matching &quot;{searchQuery}&quot;
           </div>
         )}
 
         {!searchQuery && results.length === 0 && !isLoading && (
           <div style={{ textAlign: "center", padding: "40px", opacity: 0.7 }}>
-            Nhập từ khóa để tìm kiếm từ vựng
+            Enter keywords to search vocabulary
           </div>
         )}
 
@@ -233,7 +233,7 @@ export default function DictionaryPage() {
               )}
               <Link href={`/dictionary/${word.id}`}>
                 <button className={styles["view-detail"]}>
-                  Xem chi tiết →
+                  View details →
                 </button>
               </Link>
             </div>

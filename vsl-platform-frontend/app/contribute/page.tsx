@@ -27,7 +27,7 @@ export default function ContributePage() {
 
     // Check authentication
     if (!isAuthenticated) {
-      alert("⚠️ Vui lòng đăng nhập để gửi đóng góp");
+      alert("⚠️ Please log in to submit a contribution");
       router.push("/login");
       return;
     }
@@ -38,7 +38,7 @@ export default function ContributePage() {
       !formData.definition.trim() ||
       !formData.videoUrl.trim()
     ) {
-      setError("Vui lòng điền đầy đủ thông tin");
+      setError("Please fill in all information");
       return;
     }
 
@@ -78,7 +78,7 @@ export default function ContributePage() {
       }
     } catch (err: any) {
       const errorMsg =
-        err.response?.data?.message || err.message || "Gửi đóng góp thất bại";
+        err.response?.data?.message || err.message || "Failed to submit contribution";
       console.error("[Contribute] Submission error:", errorMsg);
       setError(errorMsg);
       setIsSubmitting(false);
@@ -95,7 +95,7 @@ export default function ContributePage() {
       <div className={styles["status-bar"]}>
         <div className={styles["status-item"]}>
           <span className={styles["status-indicator"]}></span>
-          <span>&gt; SYSTEM: UPLOAD_PROTOCOL_INITIATED</span>
+          <span>&gt; SYSTEM: UPLOAD PROTOCOL INITIATED</span>
         </div>
       </div>
 
@@ -103,7 +103,7 @@ export default function ContributePage() {
       <div className={styles.container}>
         {/* Form Container */}
         <div className={styles["form-container"]}>
-          <div className={styles["form-title"]}>CONTRIBUTE_NEW_WORD</div>
+          <div className={styles["form-title"]}>CONTRIBUTE NEW WORD</div>
 
           <form id="contributeForm" onSubmit={handleSubmit}>
             {error && <div className={styles["error-message"]}>⚠️ {error}</div>}
@@ -111,13 +111,13 @@ export default function ContributePage() {
             {/* Word Field */}
             <div className={styles["form-group"]}>
               <label className={styles["form-label"]} htmlFor="wordInput">
-                Word (Từ)
+                Word
               </label>
               <input
                 type="text"
                 id="wordInput"
                 className={styles["form-input"]}
-                placeholder="e.g., Xin chào"
+                placeholder="e.g., Hello"
                 value={formData.word}
                 onChange={(e) =>
                   setFormData({ ...formData, word: e.target.value })
@@ -130,7 +130,7 @@ export default function ContributePage() {
             {/* Definition Field */}
             <div className={styles["form-group"]}>
               <label className={styles["form-label"]} htmlFor="definitionInput">
-                Definition (Định nghĩa)
+                Definition
               </label>
               <textarea
                 id="definitionInput"
@@ -171,7 +171,7 @@ export default function ContributePage() {
                 className={styles.btn}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "SUBMITTING..." : "SUBMIT_DATA"}
+                {isSubmitting ? "SUBMITTING..." : "SUBMIT DATA"}
               </button>
               <button
                 type="button"
@@ -190,7 +190,7 @@ export default function ContributePage() {
       {showSuccess && (
         <div className={`${styles["success-message"]} ${styles.active}`}>
           <div style={{ fontSize: "18px", marginBottom: "12px" }}>
-            ✓ ĐÃ GỬI ĐÓNG GÓP THÀNH CÔNG
+            ✓ CONTRIBUTION SUBMITTED SUCCESSFULLY
           </div>
           <div
             style={{
@@ -199,7 +199,7 @@ export default function ContributePage() {
               letterSpacing: "1px",
             }}
           >
-            Đóng góp của bạn đã được gửi thành công!
+            Your contribution has been submitted successfully!
           </div>
           <div
             style={{
@@ -209,10 +209,10 @@ export default function ContributePage() {
               color: "#ffaa00",
             }}
           >
-            📋 Trạng thái: <strong>PENDING</strong> (Chờ duyệt)
+            📋 Status: <strong>PENDING</strong> (Awaiting review)
             <br />
             <span style={{ fontSize: "11px", opacity: 0.8 }}>
-              Quản trị viên sẽ xem xét và phê duyệt đóng góp của bạn.
+              Administrators will review and approve your contribution.
             </span>
           </div>
           <button
@@ -220,7 +220,7 @@ export default function ContributePage() {
             onClick={() => router.push("/dashboard")}
             style={{ width: "100%" }}
           >
-            RETURN_TO_DASHBOARD
+            RETURN TO DASHBOARD
           </button>
         </div>
       )}

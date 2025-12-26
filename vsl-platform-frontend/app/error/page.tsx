@@ -13,32 +13,32 @@ export default function ErrorPage() {
         <div className={styles["error-code"]}>404</div>
 
         {/* Subtitle with critical failure message */}
-        <div className={styles.subtitle}>&gt; SYSTEM_CRITICAL_FAILURE</div>
+        <div className={styles.subtitle}>&gt; SYSTEM CRITICAL FAILURE</div>
 
         {/* Terminal log box */}
         <div className={styles["terminal-log"]}>
           <div className={`${styles["log-line"]} ${styles.status}`}>
-            &gt; CONNECTING_TO_SERVER...{" "}
+            &gt; CONNECTING TO SERVER...{" "}
             <span className={styles["status-indicator"]}>[FAILED]</span>
           </div>
           <div className={`${styles["log-line"]} ${styles.status}`}>
-            &gt; SEARCHING_DIRECTORY...{" "}
-            <span className={styles["status-indicator"]}>[NULL_POINTER]</span>
+            &gt; SEARCHING DIRECTORY...{" "}
+            <span className={styles["status-indicator"]}>[NULL POINTER]</span>
           </div>
           <div className={`${styles["log-line"]} ${styles.status}`}>
-            &gt; ROUTING_REQUEST...{" "}
-            <span className={styles["status-indicator"]}>[INVALID_PATH]</span>
+            &gt; ROUTING REQUEST...{" "}
+            <span className={styles["status-indicator"]}>[INVALID PATH]</span>
           </div>
-          <div className={`${styles["log-line"]} ${styles.error}`}>&gt; ERROR_CODE: PAGE_NOT_FOUND</div>
+          <div className={`${styles["log-line"]} ${styles.error}`}>&gt; ERROR CODE: PAGE NOT FOUND</div>
           <div className={`${styles["log-line"]} ${styles.status}`}>
-            &gt; ATTEMPTING_RECOVERY...{" "}
+            &gt; ATTEMPTING RECOVERY...{" "}
             <span className={styles["status-indicator"]}>[STANDBY]</span>
           </div>
         </div>
 
         {/* Recovery button */}
         <button className={styles["recovery-btn"]} onClick={() => router.push("/")}>
-          [ INITIATE_SYSTEM_RECOVERY ]
+          [ INITIATE SYSTEM RECOVERY ]
         </button>
       </div>
     </div>

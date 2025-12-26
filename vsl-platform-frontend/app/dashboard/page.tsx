@@ -148,7 +148,7 @@ export default function DashboardPage() {
             onClick={() => router.push("/recognize")}
           >
             <div className={styles["button-icon"]}>📷</div>
-            <div className={styles["button-text"]}>DỊCH CỬ CHỈ</div>
+            <div className={styles["button-text"]}>GESTURE TRANSLATOR</div>
             <div className={styles["button-subtitle"]}>Gesture to Text</div>
           </button>
 
@@ -157,7 +157,7 @@ export default function DashboardPage() {
             onClick={() => router.push("/spell")}
           >
             <div className={styles["button-icon"]}>⌨️</div>
-            <div className={styles["button-text"]}>ĐÁNH VẦN</div>
+            <div className={styles["button-text"]}>SPELLING</div>
             <div className={styles["button-subtitle"]}>Text to Gesture</div>
           </button>
 
@@ -166,7 +166,7 @@ export default function DashboardPage() {
             onClick={() => router.push("/dictionary")}
           >
             <div className={styles["button-icon"]}>📖</div>
-            <div className={styles["button-text"]}>TỪ ĐIỂN</div>
+            <div className={styles["button-text"]}>DICTIONARY</div>
             <div className={styles["button-subtitle"]}>Dictionary</div>
           </button>
         </div>
@@ -176,10 +176,10 @@ export default function DashboardPage() {
           <>
             {/* Search History Section */}
             <div className={styles["activity-section"]}>
-              <h2 className={styles["section-title"]}>📜 Lịch sử Tìm kiếm</h2>
+              <h2 className={styles["section-title"]}>📜 Search History</h2>
 
               {isHistoryLoading && (
-                <p className={styles["loading-text"]}>Đang tải lịch sử...</p>
+                <p className={styles["loading-text"]}>Loading history...</p>
               )}
 
               {historyError && (
@@ -190,7 +190,7 @@ export default function DashboardPage() {
                 !historyError &&
                 searchHistory.length === 0 && (
                   <p className={styles["empty-text"]}>
-                    Chưa có lịch sử tìm kiếm nào.
+                    No search history yet.
                   </p>
                 )}
 
@@ -219,7 +219,7 @@ export default function DashboardPage() {
                               href={`/dictionary/${item.dictionaryId}`}
                               className={styles["history-link"]}
                             >
-                              Xem chi tiết →
+                              View details →
                             </Link>
                           )}
                         </div>
@@ -232,12 +232,12 @@ export default function DashboardPage() {
             {/* Favorites Section */}
             <div className={styles["activity-section"]}>
               <h2 className={styles["section-title"]}>
-                ⭐ Danh sách Yêu thích
+                ⭐ Favorites
               </h2>
 
               {isFavoritesLoading && (
                 <p className={styles["loading-text"]}>
-                  Đang tải danh sách yêu thích...
+                  Loading favorites...
                 </p>
               )}
 
@@ -249,8 +249,7 @@ export default function DashboardPage() {
                 !favoritesError &&
                 favorites.length === 0 && (
                   <p className={styles["empty-text"]}>
-                    Chưa có từ yêu thích nào. Hãy tìm kiếm và lưu từ yêu thích
-                    của bạn!
+                    No favorites yet. Search and save your favorite words!
                   </p>
                 )}
 
@@ -298,7 +297,7 @@ export default function DashboardPage() {
                 favorites.length > 0 && (
                   <div className={styles["view-all-container"]}>
                     <Link href="/users" className={styles["view-all-link"]}>
-                      Xem tất cả yêu thích →
+                      View all favorites →
                     </Link>
                   </div>
                 )}
@@ -311,23 +310,23 @@ export default function DashboardPage() {
           <div className={styles["login-prompt"]}>
             {isGuest ? (
               <p>
-                👤 Bạn đang sử dụng ở chế độ Guest.{" "}
+                👤 You are using Guest mode.{" "}
                 <Link href="/login" className={styles["login-link"]}>
-                  Đăng nhập
+                  Log in
                 </Link>{" "}
-                hoặc{" "}
+                or{" "}
                 <Link href="/register" className={styles["login-link"]}>
-                  đăng ký
+                  register
                 </Link>{" "}
-                để lưu lịch sử và danh sách yêu thích.
+                to save history and favorites.
               </p>
             ) : (
               <p>
-                🔒 Vui lòng{" "}
+                🔒 Please{" "}
                 <Link href="/login" className={styles["login-link"]}>
-                  đăng nhập
+                  log in
                 </Link>{" "}
-                để xem lịch sử và danh sách yêu thích.
+                to view history and favorites.
               </p>
             )}
           </div>

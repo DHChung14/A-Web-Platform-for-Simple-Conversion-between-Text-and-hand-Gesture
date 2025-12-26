@@ -41,13 +41,13 @@ export default function LoginPage() {
           router.push("/dashboard");
         }
       } else {
-        setError(response.data.message || "Đăng nhập thất bại");
+        setError(response.data.message || "Login failed");
       }
     } catch (err: any) {
       console.error("Login error:", err);
       setError(
         err.response?.data?.message ||
-          "Đăng nhập thất bại. Vui lòng kiểm tra lại tên đăng nhập và mật khẩu."
+          "Login failed. Please check your username and password."
       );
     } finally {
       setIsLoading(false);
@@ -60,12 +60,12 @@ export default function LoginPage() {
       <div className={styles.scanline} />
 
       <Link href="/" className={styles.backLink}>
-        ← Quay lại
+        ← Back
       </Link>
 
       <div className={styles.loginBox}>
         <div className={styles.loginHeader}>
-          <div className={styles.loginTitle}>ĐĂNG NHẬP</div>
+          <div className={styles.loginTitle}>LOGIN</div>
           <div className={styles.loginSubtitle}>Access VSL Platform</div>
         </div>
 
@@ -74,14 +74,14 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit}>
           <div className={styles.formGroup}>
             <label htmlFor="username" className={styles.formLabel}>
-              Tên đăng nhập
+              Username
             </label>
             <input
               type="text"
               id="username"
               name="username"
               className={styles.formInput}
-              placeholder="Nhập tên đăng nhập"
+              placeholder="Enter username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -91,7 +91,7 @@ export default function LoginPage() {
 
           <div className={styles.formGroup}>
             <label htmlFor="password" className={styles.formLabel}>
-              Mật khẩu
+              Password
             </label>
             <div className={styles.inputContainer}>
               <input
@@ -99,7 +99,7 @@ export default function LoginPage() {
                 id="password"
                 name="password"
                 className={styles.formInput}
-                placeholder="Nhập mật khẩu"
+                placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -119,10 +119,10 @@ export default function LoginPage() {
           <div className={styles.rememberForgot}>
             <label className={styles.checkboxLabel}>
               <input type="checkbox" name="remember" disabled={isLoading} />
-              <span>Ghi nhớ đăng nhập</span>
+              <span>Remember me</span>
             </label>
             <a href="#" className={styles.forgotLink}>
-              Quên mật khẩu?
+              Forgot password?
             </a>
           </div>
 
@@ -131,12 +131,12 @@ export default function LoginPage() {
             className={styles.loginButton}
             disabled={isLoading}
           >
-            {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
+            {isLoading ? "Logging in..." : "Log in"}
           </button>
         </form>
 
         <div className={styles.divider}>
-          <span className={styles.dividerText}>HOẶC</span>
+          <span className={styles.dividerText}>OR</span>
         </div>
 
         <button
@@ -148,11 +148,11 @@ export default function LoginPage() {
           }}
           disabled={isLoading}
         >
-          Tiếp tục với tư cách Guest
+          Continue as Guest
         </button>
 
         <div className={styles.registerLink}>
-          Chưa có tài khoản? <Link href="/register">Đăng ký ngay</Link>
+          Don't have an account? <Link href="/register">Register now</Link>
         </div>
       </div>
     </div>

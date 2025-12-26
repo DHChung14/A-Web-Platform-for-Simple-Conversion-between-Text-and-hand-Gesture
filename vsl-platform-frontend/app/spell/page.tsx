@@ -33,9 +33,9 @@ export default function SpellingPage() {
 
     // Get User Info: Ưu tiên từ auth store, nếu không có thì gọi API
     const fetchUser = async () => {
-      // Nếu là guest mode, hiển thị GUEST_MODE
+      // Nếu là guest mode, hiển thị GUEST MODE
       if (isGuest) {
-        setUserName("GUEST_MODE");
+        setUserName("GUEST MODE");
         return;
       }
 
@@ -58,11 +58,11 @@ export default function SpellingPage() {
         // Nếu không có username trong store, thử gọi API
         try {
           const res: any = await apiClient.get("/users/me");
-          const name = res.fullName || res.username || "UNKNOWN_USER";
+          const name = res.fullName || res.username || "UNKNOWN USER";
           setUserName(name);
         } catch (error) {
           console.error("Failed to fetch user:", error);
-          setUserName("GUEST_MODE");
+          setUserName("GUEST MODE");
         }
       }
     };
@@ -198,7 +198,7 @@ export default function SpellingPage() {
                       target.style.display = 'none';
                       if (target.parentElement) {
                          const errDiv = document.createElement('div');
-                         errDiv.innerText = '[NO_IMG]';
+                         errDiv.innerText = '[NO IMAGE]';
                          errDiv.style.color = '#555';
                          errDiv.style.fontSize = '10px';
                          target.parentElement.appendChild(errDiv);

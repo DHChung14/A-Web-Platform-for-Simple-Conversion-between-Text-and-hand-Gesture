@@ -139,7 +139,7 @@ export default function GestureRecognitionPage() {
         } catch (error: any) {
           console.error("AI Error:", error);
           const errorMsg = error?.response?.status === 401 
-            ? "⚠️ HẠNG SỬ" 
+            ? "⚠️ UNAUTHORIZED" 
             : error?.response?.status === 503
             ? "⚠️ AI Service Down"
             : "ERR";
@@ -228,14 +228,14 @@ export default function GestureRecognitionPage() {
         // #endregion agent log
         
         const status = error.response?.status;
-        let errorMsg = "Không thể kết nối đến dịch vụ AI";
+        let errorMsg = "Cannot connect to AI service";
         
         if (status === 502) {
-          errorMsg = "Lỗi: Python AI service không khả dụng. Vui lòng kiểm tra service đang chạy trên port 5000.";
+          errorMsg = "Error: Python AI service is unavailable. Please check if the service is running on port 5000.";
         } else if (status === 503) {
-          errorMsg = "Dịch vụ AI tạm thời không khả dụng";
+          errorMsg = "AI service is temporarily unavailable";
         } else if (status === 400) {
-          errorMsg = "Dữ liệu không hợp lệ";
+          errorMsg = "Invalid data";
         }
         
         console.error("[AUTO-FIX] Error:", error);
@@ -397,13 +397,13 @@ export default function GestureRecognitionPage() {
         {/* SIDEBAR LOGS */}
         <div className={styles["terminal-sidebar"]}>
           <div className={styles["terminal-header"]}>
-            {">"} TEXT_PANEL
+            {">"} TEXT PANEL
           </div>
           <div className={styles["terminal-content"]}>
             {/* === RAW TEXT === */}
             <div style={{ marginBottom: '15px' }}>
               <div style={{ color: '#ffaa00', fontWeight: 'bold', fontSize: '11px', marginBottom: '6px' }}>
-                📝 RAW (không dấu):
+                📝 RAW (no diacritics):
               </div>
               <div style={{
                   background: '#0a2a0a',
@@ -418,14 +418,14 @@ export default function GestureRecognitionPage() {
                   overflowY: 'auto',
                   minHeight: '35px'
               }}>
-                {outputText || '(trống)'}
+                {outputText || '(empty)'}
               </div>
             </div>
 
             {/* === FIXED TEXT === */}
             <div style={{ marginBottom: '15px', borderTop: '1px dashed #00aa00', paddingTop: '10px' }}>
               <div style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '11px', marginBottom: '6px' }}>
-                ✓ FIXED (có dấu):
+                ✓ FIXED (with diacritics):
               </div>
               <div style={{
                   background: '#0a2a0a',
@@ -440,7 +440,7 @@ export default function GestureRecognitionPage() {
                   overflowY: 'auto',
                   minHeight: '35px'
               }}>
-                {isFixingText ? '⏳ Fixing...' : (fixError ? `⚠️ ${fixError}` : (fixedText || '(tự động fix sau khi thêm ký tự)'))}
+                {isFixingText ? '⏳ Fixing...' : (fixError ? `⚠️ ${fixError}` : (fixedText || '(auto-fix after adding character)'))}
               </div>
             </div>
 
@@ -463,10 +463,10 @@ export default function GestureRecognitionPage() {
                 Status: {isCapturing ? '🟢 OK' : '⚪ Ready'}
             </div>
 
-            {/* === HƯỚNG DẪN SỬ DỤNG === */}
+            {/* === INSTRUCTIONS === */}
             <div style={{marginTop: '15px', borderTop: '1px dashed #004d00', paddingTop: '10px'}}>
               <div style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '11px', marginBottom: '8px' }}>
-                📖 HƯỚNG DẪN:
+                📖 INSTRUCTIONS:
               </div>
               <div style={{
                   background: '#0a2a0a',
@@ -478,32 +478,32 @@ export default function GestureRecognitionPage() {
                   color: '#aaffaa'
               }}>
                 <div style={{ marginBottom: '6px' }}>
-                  <strong style={{ color: '#00ff00' }}>⌨️ PHÍM TẮT:</strong>
+                  <strong style={{ color: '#00ff00' }}>⌨️ SHORTCUTS:</strong>
                 </div>
                 <div style={{ marginLeft: '8px', marginBottom: '4px' }}>
-                  <span style={{ color: '#ffaa00' }}>Space</span> - Thêm khoảng trắng
+                  <span style={{ color: '#ffaa00' }}>Space</span> - Add space
                 </div>
                 <div style={{ marginLeft: '8px', marginBottom: '4px' }}>
-                  <span style={{ color: '#ffaa00' }}>X</span> - Xóa ký tự cuối
+                  <span style={{ color: '#ffaa00' }}>X</span> - Delete last character
                 </div>
                 <div style={{ marginLeft: '8px', marginBottom: '8px' }}>
-                  <span style={{ color: '#ffaa00' }}>C</span> - Xóa toàn bộ văn bản
+                  <span style={{ color: '#ffaa00' }}>C</span> - Clear all text
                 </div>
                 
                 <div style={{ marginTop: '8px', marginBottom: '6px', borderTop: '1px dashed #004d00', paddingTop: '6px' }}>
-                  <strong style={{ color: '#00ff00' }}>🎯 CÁCH SỬ DỤNG:</strong>
+                  <strong style={{ color: '#00ff00' }}>🎯 HOW TO USE:</strong>
                 </div>
                 <div style={{ marginLeft: '8px', marginBottom: '4px' }}>
-                  • Giữ gesture 2 lần liên tiếp để thêm ký tự
+                  • Hold gesture 2 times consecutively to add character
                 </div>
                 <div style={{ marginLeft: '8px', marginBottom: '4px' }}>
-                  • Văn bản tự động fix dấu sau khi thêm ký tự
+                  • Text automatically fixes diacritics after adding character
                 </div>
                 <div style={{ marginLeft: '8px', marginBottom: '4px' }}>
-                  • Xem RAW (không dấu) và FIXED (có dấu) ở panel bên
+                  • View RAW (no diacritics) and FIXED (with diacritics) in side panel
                 </div>
                 <div style={{ marginLeft: '8px', marginBottom: '0px' }}>
-                  • Nhấn <span style={{ color: '#ffaa00' }}>RESET</span> để reset trạng thái
+                  • Press <span style={{ color: '#ffaa00' }}>RESET</span> to reset state
                 </div>
               </div>
             </div>

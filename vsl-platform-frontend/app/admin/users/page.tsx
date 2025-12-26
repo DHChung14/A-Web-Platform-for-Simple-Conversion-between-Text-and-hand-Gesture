@@ -111,9 +111,9 @@ export default function AdminUsersPage() {
 
   const menuItems = [
     { label: "[DASHBOARD]", href: "/admin", icon: LayoutDashboard },
-    { label: "[USER_MANAGEMENT]", href: "/admin/users", icon: Users },
+    { label: "[USER MANAGEMENT]", href: "/admin/users", icon: Users },
     { label: "[CONTRIBUTIONS]", href: "/admin/contributions", icon: FileText },
-    { label: "[DICTIONARY_DB]", href: "/admin/dictionary", icon: BookOpen },
+    { label: "[DICTIONARY DATABASE]", href: "/admin/dictionary", icon: BookOpen },
   ];
 
   // #region agent log
@@ -283,7 +283,7 @@ export default function AdminUsersPage() {
       <aside className={styles.sidebar}>
         <div className={styles["sidebar-header"]}>
            <div className="flex items-center gap-2">
-             <Lock size={16}/> VSL_ADMIN
+             <Lock size={16}/> VSL ADMIN
            </div>
            CORE
         </div>
