@@ -16,13 +16,13 @@ export interface HandFrame {
 
 // Request gửi lên Backend: Chứa mảng các frame (mỗi frame chứa 21 điểm landmark)
 export interface GestureRecognitionRequest {
-  frames: Landmark[][]; 
+  frames: Landmark[][];
 }
 
 // Response từ Backend trả về
 export interface GestureRecognitionResponse {
   predictedWord: string; // Chữ cái dự đoán (ví dụ: "A", "B")
-  confidence: number;    // Độ tin cậy (0.0 - 1.0)
+  confidence: number; // Độ tin cậy (0.0 - 1.0)
   timestamp?: string;
 }
 
@@ -127,4 +127,26 @@ export interface ContributionRequest {
   word: string;
   definition: string;
   videoUrl: string;
+}
+
+// --- ReportDTO (from backend - GET /api/user/reports)
+export interface ReportDTO {
+  id: number;
+  dictionaryId: number;
+  word: string;
+  reason: string;
+  status: "OPEN" | "RESOLVED" | "CANCELLED";
+  createdAt: string; // ISO date-time string
+  updatedAt: string; // ISO date-time string
+}
+
+// --- ContributionDTO (from backend - GET /api/user/contributions)
+export interface ContributionDTO {
+  id: number;
+  userId: number;
+  username: string;
+  stagingData: string; // JSON string containing {word, definition, videoUrl}
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  createdAt: string; // ISO date-time string
+  updatedAt: string; // ISO date-time string
 }

@@ -46,8 +46,9 @@ export default function SpellingPage() {
         // Vẫn thử gọi API để lấy fullName nếu có
         if (isAuthenticated) {
           try {
-            const res: any = await apiClient.get("/users/me");
-            const name = res.fullName || res.username || username;
+            const res: any = await apiClient.get("/user/profile");
+            const userData = res.data?.data || res.data;
+            const name = userData?.fullName || userData?.username || username;
             setUserName(name);
           } catch (error) {
             // Nếu API fail, vẫn dùng username từ store
@@ -57,8 +58,9 @@ export default function SpellingPage() {
       } else {
         // Nếu không có username trong store, thử gọi API
         try {
-          const res: any = await apiClient.get("/users/me");
-          const name = res.fullName || res.username || "UNKNOWN USER";
+          const res: any = await apiClient.get("/user/profile");
+          const userData = res.data?.data || res.data;
+          const name = userData?.fullName || userData?.username || "UNKNOWN USER";
           setUserName(name);
         } catch (error) {
           console.error("Failed to fetch user:", error);

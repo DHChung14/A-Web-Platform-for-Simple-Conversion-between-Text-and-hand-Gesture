@@ -3,8 +3,13 @@ import { GestureRecognitionRequest, GestureRecognitionResponse } from '@/types/a
 
 // 1. Định nghĩa URL Backend (VSL Platform Backend chạy trên port 8081)
 // - Local development: http://localhost:8081/api
-// - Docker: http://host.docker.internal:8081/api (frontend inside container)
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api";
+// - Docker: http://backend:8080/api (frontend inside container, use service name)
+// - Browser access: http://localhost:8081/api (browser runs on host)
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || (
+  typeof window !== "undefined" 
+    ? "http://localhost:8081/api"  // Browser: use localhost
+    : "http://backend:8080/api"    // Server-side: use Docker service name
+);
 
 // Type định nghĩa response structure
 interface ApiResponse<T> {
@@ -110,10 +115,6 @@ export const recognitionApi = {
       
       // Backend returns: {code, message, data: "fixed Vietnamese text"}
       const fixedText = response.data?.data || response.data?.result || rawText;
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-client.ts:fixDiacritics',message:'API response received',data:{rawText:rawText,fixedText:fixedText,responseCode:response.data?.code,hasData:!!response.data?.data,responseData:response.data?.data,fullResponse:JSON.stringify(response.data)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-      // #endregion agent log
       
       console.log("[API] Extracted fixedText:", fixedText, "| Original:", rawText, "| Are they equal?", fixedText === rawText);
       

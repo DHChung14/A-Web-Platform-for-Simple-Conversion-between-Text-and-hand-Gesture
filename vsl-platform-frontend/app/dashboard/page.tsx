@@ -10,7 +10,8 @@ import styles from "../../styles/dashboard.module.css";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { isAuthenticated, isGuest } = useAuthStore();
+  const { isAuthenticated, isGuest, logout, role } = useAuthStore();
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Search history state
   const [searchHistory, setSearchHistory] = useState<SearchHistoryDTO[]>([]);
@@ -107,6 +108,22 @@ export default function DashboardPage() {
     fetchFavorites();
   }, [isAuthenticated]);
 
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest("[data-user-menu]")) {
+        setShowUserMenu(false);
+      }
+    };
+
+    if (showUserMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showUserMenu]);
+
   // Format date for display
   const formatDate = (isoDateString: string) => {
     try {
@@ -128,17 +145,147 @@ export default function DashboardPage() {
       <div className={styles.content}>
         <div className={styles.header}>
           <div className={styles.title}>VSL PLATFORM</div>
-          <div
-            className={styles["user-icon"]}
-            onClick={() => {
-              if (isAuthenticated) {
-                router.push("/users");
-              } else {
-                router.push("/login");
-              }
-            }}
-          >
-            👤
+          <div style={{ position: "relative" }} data-user-menu>
+            <div
+              className={styles["user-icon"]}
+              onClick={() => {
+                setShowUserMenu(!showUserMenu);
+              }}
+              style={{ cursor: "pointer" }}
+            >
+              👤
+            </div>
+            {showUserMenu && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  marginTop: "8px",
+                  backgroundColor: "#0a0a0a",
+                  border: "2px solid #00ff41",
+                  borderRadius: "4px",
+                  minWidth: "150px",
+                  zIndex: 1000,
+                  boxShadow: "0 0 20px rgba(0, 255, 65, 0.3)",
+                }}
+              >
+                {isAuthenticated && role && role.toUpperCase() === "USER" ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        router.push("/users");
+                        setShowUserMenu(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 16px",
+                        backgroundColor: "transparent",
+                        border: "none",
+                        color: "#00ff41",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        fontFamily: "Courier New, monospace",
+                        fontSize: "12px",
+                        borderBottom: "1px solid rgba(0, 255, 65, 0.2)",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          "rgba(0, 255, 65, 0.1)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      👤 Profile
+                    </button>
+                    <button
+                      onClick={() => {
+                        logout();
+                        router.push("/login");
+                        setShowUserMenu(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 16px",
+                        backgroundColor: "transparent",
+                        border: "none",
+                        color: "#ff4444",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        fontFamily: "Courier New, monospace",
+                        fontSize: "12px",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          "rgba(255, 68, 68, 0.1)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      🚪 Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        router.push("/login?from=dashboard");
+                        setShowUserMenu(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 16px",
+                        backgroundColor: "transparent",
+                        border: "none",
+                        color: "#00ff41",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        fontFamily: "Courier New, monospace",
+                        fontSize: "12px",
+                        borderBottom: "1px solid rgba(0, 255, 65, 0.2)",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          "rgba(0, 255, 65, 0.1)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      🔐 Login
+                    </button>
+                    <button
+                      onClick={() => {
+                        router.push("/register?from=dashboard");
+                        setShowUserMenu(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 16px",
+                        backgroundColor: "transparent",
+                        border: "none",
+                        color: "#00ff41",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        fontFamily: "Courier New, monospace",
+                        fontSize: "12px",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          "rgba(0, 255, 65, 0.1)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      ✍️ Sign Up
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -171,8 +318,8 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* User activity sections - only show if authenticated */}
-        {isAuthenticated && (
+        {/* User activity sections - only show if authenticated and not guest */}
+        {isAuthenticated && role && role.toUpperCase() === "USER" && (
           <>
             {/* Search History Section */}
             <div className={styles["activity-section"]}>
@@ -189,9 +336,7 @@ export default function DashboardPage() {
               {!isHistoryLoading &&
                 !historyError &&
                 searchHistory.length === 0 && (
-                  <p className={styles["empty-text"]}>
-                    No search history yet.
-                  </p>
+                  <p className={styles["empty-text"]}>No search history yet.</p>
                 )}
 
               {!isHistoryLoading &&
@@ -231,14 +376,10 @@ export default function DashboardPage() {
 
             {/* Favorites Section */}
             <div className={styles["activity-section"]}>
-              <h2 className={styles["section-title"]}>
-                ⭐ Favorites
-              </h2>
+              <h2 className={styles["section-title"]}>⭐ Favorites</h2>
 
               {isFavoritesLoading && (
-                <p className={styles["loading-text"]}>
-                  Loading favorites...
-                </p>
+                <p className={styles["loading-text"]}>Loading favorites...</p>
               )}
 
               {favoritesError && (
@@ -311,11 +452,17 @@ export default function DashboardPage() {
             {isGuest ? (
               <p>
                 👤 You are using Guest mode.{" "}
-                <Link href="/login" className={styles["login-link"]}>
+                <Link
+                  href="/login?from=dashboard"
+                  className={styles["login-link"]}
+                >
                   Log in
                 </Link>{" "}
                 or{" "}
-                <Link href="/register" className={styles["login-link"]}>
+                <Link
+                  href="/register?from=dashboard"
+                  className={styles["login-link"]}
+                >
                   register
                 </Link>{" "}
                 to save history and favorites.
@@ -323,7 +470,10 @@ export default function DashboardPage() {
             ) : (
               <p>
                 🔒 Please{" "}
-                <Link href="/login" className={styles["login-link"]}>
+                <Link
+                  href="/login?from=dashboard"
+                  className={styles["login-link"]}
+                >
                   log in
                 </Link>{" "}
                 to view history and favorites.

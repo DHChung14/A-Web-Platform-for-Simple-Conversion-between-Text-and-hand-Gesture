@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Space_Mono } from "next/font/google"; // Import font từ Google
 import "./globals.css";
 import { Toaster } from "react-hot-toast"; // Thông báo popup
+import AdminRouteGuard from "@/components/AdminRouteGuard";
 
 // Cấu hình font
 const spaceMono = Space_Mono({ 
@@ -13,6 +14,9 @@ const spaceMono = Space_Mono({
 export const metadata: Metadata = {
   title: "VSL Platform | Cyberpunk Edition",
   description: "Vietnamese Sign Language Translator",
+  other: {
+    "font-awesome": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css",
+  },
 };
 
 export default function RootLayout({
@@ -22,8 +26,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+          crossOrigin="anonymous"
+          referrerPolicy="no-referrer"
+        />
+      </head>
       <body className={spaceMono.className}>
-        {children}
+        <AdminRouteGuard>
+          {children}
+        </AdminRouteGuard>
         {/* Nơi hiển thị thông báo (Toast) */}
         <Toaster 
           position="top-right"

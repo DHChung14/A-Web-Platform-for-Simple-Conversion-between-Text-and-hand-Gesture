@@ -76,9 +76,12 @@ export default function ContributePage() {
           response.data.message || "Failed to submit contribution"
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       const errorMsg =
-        err.response?.data?.message || err.message || "Failed to submit contribution";
+        err instanceof Error
+          ? (err as { response?: { data?: { message?: string } } }).response
+              ?.data?.message || err.message
+          : "Failed to submit contribution";
       console.error("[Contribute] Submission error:", errorMsg);
       setError(errorMsg);
       setIsSubmitting(false);

@@ -122,6 +122,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/spelling/**").permitAll()             // Đã sửa
                 .requestMatchers("/api/dictionary/search/**").permitAll()    // QUAN TRỌNG: Sửa dòng này để Healthcheck qua được
                 .requestMatchers("/api/dictionary/detail/**").permitAll()    // Đã sửa
+                .requestMatchers("/api/dictionary/random/**").permitAll()    // Public: Random words for guest and users
+                .requestMatchers("/api/dictionary/count").permitAll()        // Public: Total word count for guest and users
                 .requestMatchers("/api/vsl/**").permitAll() // VSL gesture recognition endpoints
                 .requestMatchers("/api/proxy/agent-logging/**").permitAll() // Agent logging proxy (no auth required)
 

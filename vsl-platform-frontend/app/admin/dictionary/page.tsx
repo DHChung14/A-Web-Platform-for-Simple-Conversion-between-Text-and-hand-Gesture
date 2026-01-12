@@ -18,7 +18,8 @@ import {
   Video, 
   X, 
   Save,
-  User
+  User,
+  Flag
 } from "lucide-react";
 import styles from "../../../styles/admin-dictionary.module.css";
 import { adminApi, DictionaryDTO } from "@/lib/admin-api-client";
@@ -67,6 +68,7 @@ export default function AdminDictionaryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentWord, setCurrentWord] = useState<Partial<DictionaryItem>>({});
+  const [originalWord, setOriginalWord] = useState<Partial<DictionaryItem> | null>(null); // Store original data for comparison
   const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
@@ -106,19 +108,13 @@ export default function AdminDictionaryPage() {
     { label: "[USER MANAGEMENT]", href: "/admin/users", icon: Users },
     { label: "[CONTRIBUTIONS]", href: "/admin/contributions", icon: FileText },
     { label: "[DICTIONARY DATABASE]", href: "/admin/dictionary", icon: BookOpen },
+    { label: "[REPORTS]", href: "/admin/reports", icon: Flag },
   ];
 
-  // #region agent log
   const handleLogout = () => {
-    fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin/dictionary/page.tsx:handleLogout',message:'Logout button clicked',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion agent log
     logout();
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin/dictionary/page.tsx:handleLogout',message:'Redirecting to login',data:{targetPath:'/login'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion agent log
     router.push("/login");
   };
-  // #endregion agent log
 
   const filteredWords = words.filter((item) =>
     item.word.toLowerCase().includes(searchTerm.toLowerCase())
@@ -126,12 +122,14 @@ export default function AdminDictionaryPage() {
 
   const handleAddNew = () => {
     setCurrentWord({});
+    setOriginalWord(null);
     setIsEditMode(false);
     setIsModalOpen(true);
   };
 
   const handleEdit = (item: DictionaryItem) => {
     setCurrentWord(item);
+    setOriginalWord({ ...item }); // Store original for comparison
     setIsEditMode(true);
     setIsModalOpen(true);
   };
@@ -162,6 +160,21 @@ export default function AdminDictionaryPage() {
 
     try {
       if (isEditMode && currentWord.id) {
+        // Check if there are actual changes
+        if (originalWord) {
+          const hasChanges = 
+            currentWord.word !== originalWord.word ||
+            (currentWord.definition || "") !== (originalWord.definition || "") ||
+            (currentWord.videoUrl || "") !== (originalWord.videoUrl || "");
+
+          if (!hasChanges) {
+            // No changes detected - silently close modal without alert
+            setIsModalOpen(false);
+            setOriginalWord(null);
+            return;
+          }
+        }
+
         // Update dictionary entry
         const updateData: Partial<DictionaryDTO> = {
           word: currentWord.word,
@@ -185,6 +198,7 @@ export default function AdminDictionaryPage() {
       const data = await adminApi.getAllDictionary();
       const mapped = data.map(mapDictionaryDTOToItem);
       setWords(mapped);
+      setOriginalWord(null); // Clear original after save
       setIsModalOpen(false);
     } catch (err: any) {
       console.error("Error saving dictionary entry:", err);

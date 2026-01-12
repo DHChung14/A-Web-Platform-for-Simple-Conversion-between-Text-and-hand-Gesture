@@ -10,7 +10,7 @@ numpy<2.0
 scikit-learn<1.5
 joblib
 
-# Vietnamese Accent Restoration
-torch
+# Vietnamese Accent Restoration (CPU-only to save space)
+torch --index-url https://download.pytorch.org/whl/cpu
 transformers
 

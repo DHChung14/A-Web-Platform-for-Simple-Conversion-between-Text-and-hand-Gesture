@@ -13,7 +13,8 @@ import {
   Lock, 
   AlertCircle,
   Activity,
-  User
+  User,
+  Flag
 } from "lucide-react";
 import styles from "../../styles/admin.module.css";
 import { adminApi } from "@/lib/admin-api-client";
@@ -34,6 +35,7 @@ export default function AdminDashboard() {
     totalUsers: 0,
     totalWords: 0,
     pendingContributions: 0,
+    openReports: 0,
     uptime: "99.9%"
   });
   const [loading, setLoading] = useState(true);
@@ -66,6 +68,7 @@ export default function AdminDashboard() {
           totalUsers: data.totalUsers,
           totalWords: data.totalWords,
           pendingContributions: data.pendingContributions,
+          openReports: data.openReports || 0,
           uptime: "99.9%" // Uptime không có trong API, giữ giá trị mặc định
         });
       } catch (err: any) {
@@ -86,28 +89,17 @@ export default function AdminDashboard() {
     { label: "[USER MANAGEMENT]", href: "/admin/users", icon: Users },
     { label: "[CONTRIBUTIONS]", href: "/admin/contributions", icon: FileText },
     { label: "[DICTIONARY DATABASE]", href: "/admin/dictionary", icon: BookOpen },
+    { label: "[REPORTS]", href: "/admin/reports", icon: AlertCircle },
   ];
 
-  // #region agent log
   const handleLogout = () => {
-    fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin/page.tsx:handleLogout',message:'Logout button clicked',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion agent log
     
-    // #region agent log
     const tokenBefore = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin/page.tsx:handleLogout',message:'Before logout - token check',data:{hasToken:!!tokenBefore},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion agent log
     
     logout();
     
-    // #region agent log
     const tokenAfter = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin/page.tsx:handleLogout',message:'After logout - token check',data:{hasToken:!!tokenAfter},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion agent log
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin/page.tsx:handleLogout',message:'Redirecting to login',data:{targetPath:'/login'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion agent log
     
     router.push("/login");
   };
@@ -228,6 +220,17 @@ export default function AdminDashboard() {
             <div className={styles["stat-label"]}>PENDING CONTRIBUTIONS</div>
             <div className={styles["stat-value"]}>
               {loading ? "..." : stats.pendingContributions}
+            </div>
+            <div className={styles["stat-unit"]}>awaiting review</div>
+          </div>
+
+          <div className={`${styles["stat-card"]} ${styles["stat-card-alert"]}`}>
+            <div className={styles["stat-icon"]}>
+              <Flag size={32} />
+            </div>
+            <div className={styles["stat-label"]}>OPEN REPORTS</div>
+            <div className={styles["stat-value"]}>
+              {loading ? "..." : stats.openReports}
             </div>
             <div className={styles["stat-unit"]}>awaiting review</div>
           </div>

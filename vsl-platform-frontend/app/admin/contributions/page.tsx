@@ -13,7 +13,8 @@ import {
   Lock,
   CheckCircle,
   XCircle,
-  User
+  User,
+  Flag
 } from "lucide-react";
 import styles from "../../../styles/admin-contributions.module.css";
 import { adminApi, ContributionDTO } from "@/lib/admin-api-client";
@@ -106,19 +107,13 @@ export default function AdminContributionsPage() {
     { label: "[USER MANAGEMENT]", href: "/admin/users", icon: Users },
     { label: "[CONTRIBUTIONS]", href: "/admin/contributions", icon: FileText },
     { label: "[DICTIONARY DATABASE]", href: "/admin/dictionary", icon: BookOpen },
+    { label: "[REPORTS]", href: "/admin/reports", icon: Flag },
   ];
 
-  // #region agent log
   const handleLogout = () => {
-    fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin/contributions/page.tsx:handleLogout',message:'Logout button clicked',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion agent log
     logout();
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin/contributions/page.tsx:handleLogout',message:'Redirecting to login',data:{targetPath:'/login'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion agent log
     router.push("/login");
   };
-  // #endregion agent log
 
   const handleApprove = async (id: number) => {
     if (!confirm(`Approve contribution #${id}?`)) {

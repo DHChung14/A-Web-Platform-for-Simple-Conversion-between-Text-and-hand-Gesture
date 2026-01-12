@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { 
   Terminal, LayoutDashboard, Users, FileText, BookOpen, LogOut, Lock, 
   Plus, Edit, Trash2, Search, X, Save, Shield, UserCheck, Activity, 
-  Eye, Key, User as UserIcon, MapPin, Calendar, Phone, Mail, FileCode 
+  Eye, Key, User as UserIcon, MapPin, Calendar, Phone, Mail, FileCode, Flag
 } from "lucide-react";
 import styles from "../../../styles/admin-users.module.css";
 import { adminApi, UserDTO } from "@/lib/admin-api-client";
@@ -71,6 +71,7 @@ export default function AdminUsersPage() {
   
   // State dữ liệu đang thao tác
   const [currentUser, setCurrentUser] = useState<Partial<User>>({});
+  const [originalUser, setOriginalUser] = useState<Partial<User> | null>(null); // Store original data for comparison
   const [viewUser, setViewUser] = useState<User | null>(null);
   const [newPassword, setNewPassword] = useState(""); 
 
@@ -114,19 +115,13 @@ export default function AdminUsersPage() {
     { label: "[USER MANAGEMENT]", href: "/admin/users", icon: Users },
     { label: "[CONTRIBUTIONS]", href: "/admin/contributions", icon: FileText },
     { label: "[DICTIONARY DATABASE]", href: "/admin/dictionary", icon: BookOpen },
+    { label: "[REPORTS]", href: "/admin/reports", icon: Flag },
   ];
 
-  // #region agent log
   const handleLogout = () => {
-    fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin/users/page.tsx:handleLogout',message:'Logout button clicked',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion agent log
     logout();
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin/users/page.tsx:handleLogout',message:'Redirecting to login',data:{targetPath:'/login'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion agent log
     router.push("/login");
   };
-  // #endregion agent log
 
   // --- Logic Handlers ---
 
@@ -161,6 +156,7 @@ export default function AdminUsersPage() {
   const handleEditUser = (user: User) => {
     // Clone object để không bị dính tham chiếu (sửa modal mà bảng nhảy theo trước khi save)
     setCurrentUser({ ...user }); 
+    setOriginalUser({ ...user }); // Store original for comparison
     setIsEditMode(true);
     setNewPassword(""); 
     setIsModalOpen(true);
@@ -199,6 +195,28 @@ export default function AdminUsersPage() {
 
     try {
       if (isEditMode && currentUser.id) {
+        // Check if there are actual changes
+        if (originalUser) {
+          const hasChanges = 
+            currentUser.username !== originalUser.username ||
+            currentUser.email !== originalUser.email ||
+            (currentUser.fullName || "") !== (originalUser.fullName || "") ||
+            (currentUser.phoneNumber || "") !== (originalUser.phoneNumber || "") ||
+            (currentUser.dob || "") !== (originalUser.dob || "") ||
+            (currentUser.address || "") !== (originalUser.address || "") ||
+            (currentUser.bio || "") !== (originalUser.bio || "") ||
+            currentUser.role !== originalUser.role ||
+            (currentUser.avatar || "") !== (originalUser.avatar || "") ||
+            (newPassword && newPassword.trim() !== ""); // Password change counts as change
+
+          if (!hasChanges) {
+            // No changes detected - silently close modal without alert
+            setIsModalOpen(false);
+            setOriginalUser(null);
+            return;
+          }
+        }
+
         // Update user
         const updateData: Partial<UserDTO> = {
           username: currentUser.username,
@@ -252,6 +270,7 @@ export default function AdminUsersPage() {
         setTotalElements(response.totalElements);
         alert("User created successfully!");
       }
+      setOriginalUser(null); // Clear original after save
       setIsModalOpen(false);
     } catch (err: any) {
       console.error("Error saving user:", err);

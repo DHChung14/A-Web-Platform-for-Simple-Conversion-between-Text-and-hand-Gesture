@@ -1,9 +1,27 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/stores/auth-store";
 
 export default function LandingPage() {
   const router = useRouter();
+  const { isAuthenticated, role, token } = useAuthStore();
+
+  const handleStartClick = () => {
+    // Check if user is already authenticated
+    if (isAuthenticated && token && role) {
+      // User is already logged in, redirect based on role
+      if (role.toUpperCase() === "ADMIN") {
+        router.push("/admin");
+      } else {
+        // USER or other roles go to dashboard
+        router.push("/dashboard");
+      }
+    } else {
+      // User is not authenticated, redirect to login
+      router.push("/dashboard");
+    }
+  };
 
   return (
     <div className="landing-container">
@@ -206,18 +224,78 @@ export default function LandingPage() {
       `}</style>
 
       <div className="container">
-        <div className="glitch" data-text="START">
-          <button
-            className="start-button"
-            onClick={() => {
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/fac30a44-515e-493f-a148-2c304048b02d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/page.tsx:start-button',message:'Start button clicked',data:{targetPath:'/login',timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-              // #endregion agent log
-              router.push("/login");
-            }}
+        <div style={{ marginBottom: "3rem" }}>
+          <h1
+            style={{ fontSize: "2rem", marginBottom: "1rem", color: "#00ff41" }}
           >
+            VSL PLATFORM
+          </h1>
+          <p style={{ fontSize: "1rem", opacity: 0.8, color: "#aaa" }}>
+            Vietnamese Sign Language Translator
+          </p>
+        </div>
+
+        <div className="glitch" data-text="START">
+          <button className="start-button" onClick={handleStartClick}>
             START
           </button>
+        </div>
+
+        <div
+          style={{
+            marginTop: "2rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1rem",
+            alignItems: "center",
+          }}
+        >
+          <button
+            style={{
+              padding: "1rem 2rem",
+              fontSize: "1.2rem",
+              backgroundColor: "transparent",
+              border: "2px solid #00ff41",
+              color: "#00ff41",
+              cursor: "pointer",
+              fontFamily: "Courier New, monospace",
+              letterSpacing: "0.1em",
+              transition: "all 0.3s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#00ff41";
+              e.currentTarget.style.color = "#0a0a0a";
+              e.currentTarget.style.boxShadow = "0 0 20px #00ff41";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent";
+              e.currentTarget.style.color = "#00ff41";
+              e.currentTarget.style.boxShadow = "none";
+            }}
+            onClick={() => router.push("/register?from=/")}
+          >
+            REGISTER
+          </button>
+
+          <div style={{ marginTop: "1rem", fontSize: "0.9rem", color: "#888" }}>
+            Already have an account?{" "}
+            <a
+              href="/login?from=/"
+              style={{
+                color: "#00ff41",
+                textDecoration: "none",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.textDecoration = "underline";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.textDecoration = "none";
+              }}
+            >
+              Login here
+            </a>
+          </div>
         </div>
       </div>
     </div>

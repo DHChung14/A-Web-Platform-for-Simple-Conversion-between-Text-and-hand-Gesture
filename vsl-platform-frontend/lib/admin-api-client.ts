@@ -38,7 +38,7 @@ export interface ContributionDTO {
   userId: number;
   username: string;
   stagingData: string; // JSON string containing {word, definition, videoUrl}
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
   createdAt: string; // ISO date-time string
   updatedAt: string; // ISO date-time string
 }
@@ -47,6 +47,17 @@ export interface DashboardStatsDTO {
   totalUsers: number;
   totalWords: number;
   pendingContributions: number;
+  openReports: number;
+}
+
+export interface ReportDTO {
+  id: number;
+  dictionaryId: number;
+  word: string;
+  reason: string;
+  status: "OPEN" | "RESOLVED" | "CANCELLED";
+  createdAt: string; // ISO date-time string
+  updatedAt: string; // ISO date-time string
 }
 
 export interface PageResponse<T> {
@@ -93,7 +104,8 @@ export const adminApi = {
       return response.data.data ?? {
         totalUsers: 0,
         totalWords: 0,
-        pendingContributions: 0
+        pendingContributions: 0,
+        openReports: 0
       };
     } catch (error: any) {
       console.error('[Admin API] Error getting stats:', error.response?.data || error.message);
@@ -212,7 +224,7 @@ export const adminApi = {
    * GET /api/admin/contributions?status=PENDING
    * Lấy danh sách contributions theo status (PENDING, APPROVED, REJECTED)
    */
-  getContributions: async (status: "PENDING" | "APPROVED" | "REJECTED" = "PENDING"): Promise<ContributionDTO[]> => {
+  getContributions: async (status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" = "PENDING"): Promise<ContributionDTO[]> => {
     try {
       const response = await apiClient.get<ApiResponse<ContributionDTO[]>>('/admin/contributions', {
         params: { status }
@@ -364,6 +376,47 @@ export const adminApi = {
       await apiClient.delete<ApiResponse<string>>(`/admin/dictionary/${id}`);
     } catch (error: any) {
       console.error('[Admin API] Error deleting dictionary entry:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // ==================== Report Management ====================
+
+  /**
+   * GET /api/admin/reports?page=0&size=20&status=OPEN
+   * Lấy danh sách reports có phân trang
+   */
+  getReports: async (page: number = 0, size: number = 20, status?: "OPEN" | "RESOLVED" | "CANCELLED"): Promise<PageResponse<ReportDTO>> => {
+    try {
+      const params: any = { page, size };
+      if (status) {
+        params.status = status;
+      }
+      const response = await apiClient.get<ApiResponse<PageResponse<ReportDTO>>>('/admin/reports', { params });
+      return response.data.data ?? {
+        content: [],
+        totalElements: 0,
+        totalPages: 0,
+        size: size,
+        number: page,
+        first: true,
+        last: true
+      };
+    } catch (error: any) {
+      console.error('[Admin API] Error getting reports:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * POST /api/admin/reports/{id}/resolve
+   * Resolve một report (đánh dấu là RESOLVED)
+   */
+  resolveReport: async (id: number): Promise<void> => {
+    try {
+      await apiClient.post<ApiResponse<string>>(`/admin/reports/${id}/resolve`);
+    } catch (error: any) {
+      console.error('[Admin API] Error resolving report:', error.response?.data || error.message);
       throw error;
     }
   },

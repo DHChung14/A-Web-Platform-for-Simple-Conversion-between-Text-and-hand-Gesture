@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, FormEvent, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
 import apiClient from "@/lib/api-client";
 import { ApiResponse, AuthResponse } from "@/types/api";
 import styles from "../../styles/register.module.css";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,6 +19,8 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from") || "/"; // Default to "/" if no from parameter
   const login = useAuthStore((state) => state.login);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -73,7 +75,7 @@ export default function RegisterPage() {
       <div className={styles.matrixBg} />
       <div className={styles.scanline} />
 
-      <Link href="/" className={styles.backLink}>
+      <Link href={from} className={styles.backLink}>
         ← Back
       </Link>
 
@@ -196,9 +198,27 @@ export default function RegisterPage() {
         </div>
 
         <div className={styles.loginLink}>
-          Already have an account? <Link href="/login">Log in now</Link>
+          Already have an account? <Link href={`/login?from=${encodeURIComponent(from)}`}>Log in now</Link>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className={styles.registerContainer}>
+        <div className={styles.matrixBg} />
+        <div className={styles.scanline} />
+        <div className={styles.registerBox}>
+          <div className={styles.registerHeader}>
+            <div className={styles.registerTitle}>LOADING...</div>
+          </div>
+        </div>
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
   );
 }

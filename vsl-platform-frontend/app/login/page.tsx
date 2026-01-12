@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, FormEvent, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
 import apiClient from "@/lib/api-client";
 import { ApiResponse, AuthResponse } from "@/types/api";
 import styles from "../../styles/login.module.css";
 
-export default function LoginPage() {
+function LoginForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -16,6 +16,8 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from") || "/"; // Default to "/" if no from parameter
   const login = useAuthStore((state) => state.login);
   const setGuestMode = useAuthStore((state) => state.setGuestMode);
 
@@ -59,7 +61,7 @@ export default function LoginPage() {
       <div className={styles.matrixBg} />
       <div className={styles.scanline} />
 
-      <Link href="/" className={styles.backLink}>
+      <Link href={from} className={styles.backLink}>
         ← Back
       </Link>
 
@@ -152,9 +154,27 @@ export default function LoginPage() {
         </button>
 
         <div className={styles.registerLink}>
-          Don't have an account? <Link href="/register">Register now</Link>
+          Don't have an account? <Link href={`/register?from=${encodeURIComponent(from)}`}>Register now</Link>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className={styles.loginContainer}>
+        <div className={styles.matrixBg} />
+        <div className={styles.scanline} />
+        <div className={styles.loginBox}>
+          <div className={styles.loginHeader}>
+            <div className={styles.loginTitle}>LOADING...</div>
+          </div>
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
