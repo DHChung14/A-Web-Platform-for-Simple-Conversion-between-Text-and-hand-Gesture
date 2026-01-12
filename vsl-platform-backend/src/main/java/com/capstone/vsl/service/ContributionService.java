@@ -43,6 +43,16 @@ public class ContributionService {
         var user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
 
+        // Check limit: user can only have maximum 5 PENDING contributions
+        long pendingContributionsCount = contributionRepository.countPendingContributionsByUser(username);
+        if (pendingContributionsCount >= 5) {
+            throw new IllegalArgumentException(
+                    "You have reached the maximum limit of 5 PENDING contributions. " +
+                    "Please wait for admin to review your existing contributions before submitting new ones. " +
+                    "You can check the status of your contributions in your profile."
+            );
+        }
+
         // Convert request to JSON string for stagingData
         String stagingData;
         try {
@@ -62,10 +72,53 @@ public class ContributionService {
 
         // Save to repository
         contribution = contributionRepository.save(contribution);
-        log.info("Created contribution: id={}, word={}, status={}", 
-                contribution.getId(), request.getWord(), contribution.getStatus());
+        log.info("Created contribution: id={}, word={}, status={}, totalPendingContributions={}", 
+                contribution.getId(), request.getWord(), contribution.getStatus(), pendingContributionsCount + 1);
 
         // Convert to DTO and return
+        return contributionToDTO(contribution);
+    }
+
+    /**
+     * Get count of PENDING contributions for a user
+     *
+     * @param username Username of the authenticated user
+     * @return Count of PENDING contributions
+     */
+    @Transactional(readOnly = true)
+    public long getPendingContributionsCount(String username) {
+        return contributionRepository.countPendingContributionsByUser(username);
+    }
+
+    /**
+     * Cancel a contribution (user can only cancel their own PENDING contributions)
+     *
+     * @param contributionId Contribution ID
+     * @param username Username of the authenticated user (must be the owner)
+     * @return Cancelled contribution DTO
+     */
+    @Transactional
+    public ContributionDTO cancelContribution(Long contributionId, String username) {
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+
+        var contribution = contributionRepository.findById(contributionId)
+                .orElseThrow(() -> new IllegalArgumentException("Contribution not found: " + contributionId));
+
+        // Verify that the user owns this contribution
+        if (!contribution.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("You can only cancel your own contributions");
+        }
+
+        // Only allow cancelling PENDING contributions
+        if (contribution.getStatus() != ContributionStatus.PENDING) {
+            throw new IllegalArgumentException("You can only cancel PENDING contributions. This contribution is already " + contribution.getStatus());
+        }
+
+        contribution.setStatus(ContributionStatus.CANCELLED);
+        contribution = contributionRepository.save(contribution);
+        log.info("Cancelled contribution: user={}, contributionId={}", username, contributionId);
+
         return contributionToDTO(contribution);
     }
 

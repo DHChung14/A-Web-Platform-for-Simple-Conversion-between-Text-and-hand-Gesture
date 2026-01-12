@@ -32,7 +32,7 @@ public class Report {
     private String reason;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(20) CHECK (status IN ('OPEN', 'RESOLVED', 'CANCELLED'))")
     @Builder.Default
     private ReportStatus status = ReportStatus.OPEN;
 

@@ -119,21 +119,47 @@ public class UserFeatureService {
     }
 
     /**
-     * Create a report for a dictionary word
+     * Create or update a report for a dictionary word
+     * If user already has an OPEN report for this word, update it instead of creating a new one
+     * This prevents spam reports for the same word
      *
      * @param wordId Dictionary word ID
      * @param reason Report reason
      * @param username Username of the authenticated user
-     * @return Created report DTO
+     * @return Created or updated report DTO
      */
     @Transactional
-    public ReportDTO createReport(Long wordId, String reason, String username) {
+    public ReportDTO createOrUpdateReport(Long wordId, String reason, String username) {
         var user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
 
         var dictionary = dictionaryRepository.findById(wordId)
                 .orElseThrow(() -> new IllegalArgumentException("Dictionary word not found: " + wordId));
 
+        // Check if user already has an OPEN report for this word
+        var existingReport = reportRepository.findOpenReportByUserAndDictionary(user, wordId);
+        
+        if (existingReport.isPresent()) {
+            // Update existing report instead of creating a new one
+            var report = existingReport.get();
+            report.setReason(reason);
+            report = reportRepository.save(report);
+            log.info("Updated existing report: user={}, wordId={}, reportId={}, reason={}", 
+                    username, wordId, report.getId(), reason);
+            return reportToDTO(report);
+        }
+
+        // Check limit: user can only have maximum 5 OPEN reports
+        long openReportsCount = reportRepository.countOpenReportsByUser(user);
+        if (openReportsCount >= 5) {
+            throw new IllegalArgumentException(
+                    "You have reached the maximum limit of 5 OPEN reports. " +
+                    "Please wait for admin to resolve your existing reports before creating new ones. " +
+                    "You can check the status of your reports in your profile."
+            );
+        }
+
+        // Create new report if no OPEN report exists and limit not reached
         var report = Report.builder()
                 .user(user)
                 .dictionary(dictionary)
@@ -142,7 +168,41 @@ public class UserFeatureService {
                 .build();
 
         report = reportRepository.save(report);
-        log.info("Created report: user={}, wordId={}, reason={}", username, wordId, reason);
+        log.info("Created new report: user={}, wordId={}, reason={}, totalOpenReports={}", 
+                username, wordId, reason, openReportsCount + 1);
+
+        return reportToDTO(report);
+    }
+
+    /**
+     * Update an existing report (for user to update their own report)
+     *
+     * @param reportId Report ID
+     * @param reason New reason
+     * @param username Username of the authenticated user (must be the owner)
+     * @return Updated report DTO
+     */
+    @Transactional
+    public ReportDTO updateReport(Long reportId, String reason, String username) {
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+
+        var report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("Report not found: " + reportId));
+
+        // Verify that the user owns this report
+        if (!report.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("You can only update your own reports");
+        }
+
+        // Only allow updating OPEN reports
+        if (report.getStatus() != ReportStatus.OPEN) {
+            throw new IllegalArgumentException("You can only update OPEN reports. This report is already " + report.getStatus());
+        }
+
+        report.setReason(reason);
+        report = reportRepository.save(report);
+        log.info("Updated report: user={}, reportId={}, reason={}", username, reportId, reason);
 
         return reportToDTO(report);
     }
@@ -158,6 +218,92 @@ public class UserFeatureService {
                 .searchQuery(history.getSearchQuery())
                 .searchedAt(history.getSearchedAt())
                 .build();
+    }
+
+    /**
+     * Get reports created by a specific user (for "My Reports" view)
+     *
+     * @param username Username of the authenticated user
+     * @return List of reports created by the user
+     */
+    @Transactional(readOnly = true)
+    public List<ReportDTO> getUserReports(String username) {
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+
+        var reports = reportRepository.findByUserOrderByCreatedAtDesc(user);
+        log.debug("Retrieved {} reports for user: {}", reports.size(), username);
+
+        return reports.stream()
+                .map(this::reportToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get count of OPEN reports for a user
+     *
+     * @param username Username of the authenticated user
+     * @return Count of OPEN reports
+     */
+    @Transactional(readOnly = true)
+    public long getOpenReportsCount(String username) {
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+        return reportRepository.countOpenReportsByUser(user);
+    }
+
+    /**
+     * Get OPEN report for a specific word by user
+     * Returns null if user doesn't have an OPEN report for this word
+     *
+     * @param wordId Dictionary word ID
+     * @param username Username of the authenticated user
+     * @return ReportDTO if exists, null otherwise
+     */
+    @Transactional(readOnly = true)
+    public ReportDTO getOpenReportForWord(Long wordId, String username) {
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+
+        var existingReport = reportRepository.findOpenReportByUserAndDictionary(user, wordId);
+        
+        if (existingReport.isPresent()) {
+            return reportToDTO(existingReport.get());
+        }
+        
+        return null;
+    }
+
+    /**
+     * Cancel a report (user can only cancel their own OPEN reports)
+     *
+     * @param reportId Report ID
+     * @param username Username of the authenticated user (must be the owner)
+     * @return Cancelled report DTO
+     */
+    @Transactional
+    public ReportDTO cancelReport(Long reportId, String username) {
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+
+        var report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("Report not found: " + reportId));
+
+        // Verify that the user owns this report
+        if (!report.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("You can only cancel your own reports");
+        }
+
+        // Only allow cancelling OPEN reports
+        if (report.getStatus() != ReportStatus.OPEN) {
+            throw new IllegalArgumentException("You can only cancel OPEN reports. This report is already " + report.getStatus());
+        }
+
+        report.setStatus(ReportStatus.CANCELLED);
+        report = reportRepository.save(report);
+        log.info("Cancelled report: user={}, reportId={}", username, reportId);
+
+        return reportToDTO(report);
     }
 
     /**

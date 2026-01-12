@@ -4,13 +4,17 @@ import com.capstone.vsl.dto.ContributionDTO;
 import com.capstone.vsl.dto.DashboardStatsDTO;
 import com.capstone.vsl.dto.DictionaryDTO;
 import com.capstone.vsl.dto.RegisterRequest;
+import com.capstone.vsl.dto.ReportDTO;
 import com.capstone.vsl.dto.UserDTO;
 import com.capstone.vsl.entity.Contribution;
 import com.capstone.vsl.entity.ContributionStatus;
+import com.capstone.vsl.entity.Report;
+import com.capstone.vsl.entity.ReportStatus;
 import com.capstone.vsl.entity.Role;
 import com.capstone.vsl.entity.User;
 import com.capstone.vsl.repository.ContributionRepository;
 import com.capstone.vsl.repository.DictionaryRepository;
+import com.capstone.vsl.repository.ReportRepository;
 import com.capstone.vsl.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +45,7 @@ public class AdminService {
     private final ContributionRepository contributionRepository;
     private final DictionaryRepository dictionaryRepository;
     private final UserRepository userRepository;
+    private final ReportRepository reportRepository;
     private final DictionaryService dictionaryService;
     private final ObjectMapper objectMapper;
     private final PasswordEncoder passwordEncoder;
@@ -125,14 +130,16 @@ public class AdminService {
         var totalUsers = userRepository.count();
         var totalWords = dictionaryRepository.count();
         var pendingContributions = contributionRepository.countByStatus(ContributionStatus.PENDING);
+        var openReports = reportRepository.countByStatus(ReportStatus.OPEN);
 
-        log.debug("Dashboard stats: users={}, words={}, pending={}",
-                totalUsers, totalWords, pendingContributions);
+        log.debug("Dashboard stats: users={}, words={}, pending={}, openReports={}",
+                totalUsers, totalWords, pendingContributions, openReports);
 
         return DashboardStatsDTO.builder()
                 .totalUsers(totalUsers)
                 .totalWords(totalWords)
                 .pendingContributions(pendingContributions)
+                .openReports(openReports)
                 .build();
     }
 
@@ -423,6 +430,68 @@ public class AdminService {
             log.error("Failed to parse staging data: {}", stagingData, e);
             throw new IllegalArgumentException("Invalid staging data format: " + e.getMessage());
         }
+    }
+
+    // ==================== Report Management ====================
+
+    /**
+     * Get all reports with pagination
+     *
+     * @param page page index (0-based)
+     * @param size page size (max 50)
+     * @param status optional status filter (null = all)
+     * @return paginated reports
+     */
+    @Transactional(readOnly = true)
+    public Page<ReportDTO> getReports(int page, int size, ReportStatus status) {
+        Pageable pageable = PageRequest.of(
+                Math.max(page, 0),
+                Math.min(Math.max(size, 1), 50),
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        Page<Report> reports;
+        if (status != null) {
+            reports = reportRepository.findByStatus(status, pageable);
+        } else {
+            reports = reportRepository.findAllByOrderByCreatedAtDesc(pageable);
+        }
+
+        return reports.map(this::reportToDTO);
+    }
+
+    /**
+     * Resolve a report (mark as RESOLVED)
+     *
+     * @param reportId ID of the report to resolve
+     */
+    @Transactional
+    public void resolveReport(Long reportId) {
+        var report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("Report not found: " + reportId));
+
+        if (report.getStatus() == ReportStatus.RESOLVED) {
+            throw new IllegalArgumentException("Report is already resolved");
+        }
+
+        report.setStatus(ReportStatus.RESOLVED);
+        reportRepository.save(report);
+        log.info("Resolved report: {}", reportId);
+    }
+
+    /**
+     * Convert Report entity to DTO
+     */
+    private ReportDTO reportToDTO(Report report) {
+        return ReportDTO.builder()
+                .id(report.getId())
+                .dictionaryId(report.getDictionary().getId())
+                .word(report.getDictionary().getWord())
+                .reason(report.getReason())
+                .status(report.getStatus())
+                .createdAt(report.getCreatedAt())
+                .updatedAt(report.getUpdatedAt())
+                .build();
     }
 }
 

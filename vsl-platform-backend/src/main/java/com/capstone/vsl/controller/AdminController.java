@@ -6,9 +6,11 @@ import com.capstone.vsl.dto.ContributionDTO;
 import com.capstone.vsl.dto.DashboardStatsDTO;
 import com.capstone.vsl.dto.DictionaryDTO;
 import com.capstone.vsl.dto.RegisterRequest;
+import com.capstone.vsl.dto.ReportDTO;
 import com.capstone.vsl.dto.RoleUpdateRequest;
 import com.capstone.vsl.dto.UserDTO;
 import com.capstone.vsl.entity.ContributionStatus;
+import com.capstone.vsl.entity.ReportStatus;
 import com.capstone.vsl.security.UserPrincipal;
 import com.capstone.vsl.service.AdminService;
 import jakarta.validation.Valid;
@@ -118,7 +120,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<UserDTO>> updateUser(
             @PathVariable Long userId,
-            @RequestBody UserDTO request,
+            @Valid @RequestBody UserDTO request,
             Authentication authentication) {
         try {
             // Lấy ID admin đang đăng nhập để kiểm tra bảo mật (không cho tự đổi Role/Status của chính mình)
@@ -350,12 +352,69 @@ public class AdminController {
         }
     }
 
+    // ==================== Report Management ====================
+
+    /**
+     * GET /api/admin/reports
+     * Get all reports with pagination
+     * Optional status filter: ?status=OPEN or ?status=RESOLVED
+     *
+     * @param page page index (0-based)
+     * @param size page size (max 50)
+     * @param status optional status filter
+     * @return paginated reports
+     */
+    @GetMapping("/reports")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Page<ReportDTO>>> getReports(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) ReportStatus status) {
+        try {
+            var reports = adminService.getReports(page, size, status);
+            return ResponseEntity.ok(ApiResponse.success("Reports retrieved", reports));
+        } catch (Exception e) {
+            log.error("Failed to get reports: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve reports: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/admin/reports/{id}/resolve
+     * Resolve a report (mark as RESOLVED)
+     *
+     * @param id ID of the report to resolve
+     * @return Success message
+     */
+    @PostMapping("/reports/{id}/resolve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<String>> resolveReport(@PathVariable Long id) {
+        try {
+            log.info("Admin resolving report: {}", id);
+            adminService.resolveReport(id);
+            
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Report resolved successfully",
+                    "Report " + id + " has been resolved"
+            ));
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request to resolve report {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to resolve report {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to resolve report: " + e.getMessage()));
+        }
+    }
+
     // ==================== Statistics ====================
 
     /**
      * GET /api/admin/stats
      * Get dashboard statistics
-     * Returns count of Users, Total Words, Pending Contributions for dashboard widgets
+     * Returns count of Users, Total Words, Pending Contributions, Open Reports for dashboard widgets
      *
      * @return Dashboard statistics
      */

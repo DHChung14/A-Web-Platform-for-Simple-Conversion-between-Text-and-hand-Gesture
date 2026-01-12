@@ -29,7 +29,7 @@ public class Contribution extends BaseEntity {
     private String stagingData;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(20) CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'))")
     @Builder.Default
     private ContributionStatus status = ContributionStatus.PENDING;
 

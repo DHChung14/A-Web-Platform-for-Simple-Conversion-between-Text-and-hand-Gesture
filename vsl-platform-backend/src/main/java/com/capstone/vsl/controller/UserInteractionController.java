@@ -99,42 +99,87 @@ public class UserInteractionController {
 
     /**
      * POST /api/user/reports
-     * Create a report for a dictionary word
+     * Create or update a report for a dictionary word
+     * If user already has an OPEN report for this word, it will be updated instead of creating a new one
+     * This prevents spam reports for the same word
      * Request Body: { "wordId": 123, "reason": "Wrong video" }
      * Requires authentication (USER or ADMIN role)
      *
      * @param request Report request with wordId and reason
      * @param authentication Current authentication (to get username)
-     * @return Created report DTO
+     * @return Created or updated report DTO
      */
     @PostMapping("/reports")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<ReportDTO>> createReport(
+    public ResponseEntity<ApiResponse<ReportDTO>> createOrUpdateReport(
             @Valid @RequestBody ReportRequest request,
             Authentication authentication) {
         try {
             var userPrincipal = (UserPrincipal) authentication.getPrincipal();
             var username = userPrincipal.getUsername();
 
-            log.info("Creating report for user: {}, wordId: {}, reason: {}", 
+            log.info("Creating or updating report for user: {}, wordId: {}, reason: {}", 
                     username, request.getWordId(), request.getReason());
             
-            var report = userFeatureService.createReport(
+            var report = userFeatureService.createOrUpdateReport(
                     request.getWordId(),
                     request.getReason(),
                     username
             );
 
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("Report created successfully", report));
+            // Check if this was an update or new creation by checking if report was just created
+            // We can't easily determine this, so we'll use a generic success message
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(ApiResponse.success(
+                            "Report processed successfully. If you already had an OPEN report for this word, it was updated.",
+                            report
+                    ));
         } catch (IllegalArgumentException e) {
-            log.warn("Invalid request to create report: {}", e.getMessage());
+            log.warn("Invalid request to create/update report: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
-            log.error("Failed to create report: {}", e.getMessage(), e);
+            log.error("Failed to create/update report: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Failed to create report: " + e.getMessage()));
+                    .body(ApiResponse.error("Failed to process report: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * PUT /api/user/reports/{id}
+     * Update an existing report (user can only update their own OPEN reports)
+     * Request Body: { "reason": "Updated reason" }
+     * Requires authentication (USER or ADMIN role)
+     *
+     * @param id Report ID
+     * @param request Report request with updated reason
+     * @param authentication Current authentication (to get username)
+     * @return Updated report DTO
+     */
+    @PutMapping("/reports/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<ReportDTO>> updateReport(
+            @PathVariable Long id,
+            @Valid @RequestBody ReportRequest request,
+            Authentication authentication) {
+        try {
+            var userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            var username = userPrincipal.getUsername();
+
+            log.info("Updating report for user: {}, reportId: {}, reason: {}", 
+                    username, id, request.getReason());
+            
+            var report = userFeatureService.updateReport(id, request.getReason(), username);
+
+            return ResponseEntity.ok(ApiResponse.success("Report updated successfully", report));
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request to update report: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to update report: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to update report: " + e.getMessage()));
         }
     }
 
@@ -206,6 +251,183 @@ public class UserInteractionController {
             log.error("Failed to get user contributions: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to retrieve user contributions: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * GET /api/user/reports
+     * Get reports created by the authenticated user
+     * Requires authentication (USER or ADMIN role)
+     *
+     * @param authentication Current authentication (to get username)
+     * @return List of reports created by the user
+     */
+    @GetMapping("/reports")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<ReportDTO>>> getUserReports(Authentication authentication) {
+        try {
+            var userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            var username = userPrincipal.getUsername();
+
+            log.info("Retrieving reports for user: {}", username);
+            var reports = userFeatureService.getUserReports(username);
+
+            return ResponseEntity.ok(ApiResponse.success(
+                    String.format("Retrieved %d reports", reports.size()),
+                    reports
+            ));
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request to get user reports: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to get user reports: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve user reports: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * GET /api/user/limits
+     * Get user's current report and contribution limits
+     * Returns counts of OPEN reports and PENDING contributions
+     * Requires authentication (USER or ADMIN role)
+     *
+     * @param authentication Current authentication (to get username)
+     * @return Map with openReportsCount and pendingContributionsCount
+     */
+    @GetMapping("/limits")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Long>>> getUserLimits(Authentication authentication) {
+        try {
+            var userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            var username = userPrincipal.getUsername();
+
+            var openReportsCount = userFeatureService.getOpenReportsCount(username);
+            var pendingContributionsCount = contributionService.getPendingContributionsCount(username);
+
+            var limits = java.util.Map.of(
+                    "openReportsCount", openReportsCount,
+                    "pendingContributionsCount", pendingContributionsCount,
+                    "maxReports", 5L,
+                    "maxContributions", 5L
+            );
+
+            return ResponseEntity.ok(ApiResponse.success("User limits retrieved", limits));
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request to get user limits: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to get user limits: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve user limits: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * PUT /api/user/reports/{id}/cancel
+     * Cancel a report (user can only cancel their own OPEN reports)
+     * Requires authentication (USER or ADMIN role)
+     *
+     * @param id Report ID
+     * @param authentication Current authentication (to get username)
+     * @return Cancelled report DTO
+     */
+    @PutMapping("/reports/{id}/cancel")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<ReportDTO>> cancelReport(
+            @PathVariable Long id,
+            Authentication authentication) {
+        try {
+            var userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            var username = userPrincipal.getUsername();
+
+            log.info("Cancelling report for user: {}, reportId: {}", username, id);
+            
+            var report = userFeatureService.cancelReport(id, username);
+
+            return ResponseEntity.ok(ApiResponse.success("Report cancelled successfully", report));
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request to cancel report: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to cancel report: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to cancel report: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * PUT /api/user/contributions/{id}/cancel
+     * Cancel a contribution (user can only cancel their own PENDING contributions)
+     * Requires authentication (USER or ADMIN role)
+     *
+     * @param id Contribution ID
+     * @param authentication Current authentication (to get username)
+     * @return Cancelled contribution DTO
+     */
+    @PutMapping("/contributions/{id}/cancel")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<ContributionDTO>> cancelContribution(
+            @PathVariable Long id,
+            Authentication authentication) {
+        try {
+            var userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            var username = userPrincipal.getUsername();
+
+            log.info("Cancelling contribution for user: {}, contributionId: {}", username, id);
+            
+            var contribution = contributionService.cancelContribution(id, username);
+
+            return ResponseEntity.ok(ApiResponse.success("Contribution cancelled successfully", contribution));
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request to cancel contribution: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to cancel contribution: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to cancel contribution: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * GET /api/user/reports/word/{wordId}
+     * Get OPEN report for a specific word by the authenticated user
+     * Returns the report if user has an OPEN report for this word, null otherwise
+     * Requires authentication (USER or ADMIN role)
+     *
+     * @param wordId Dictionary word ID
+     * @param authentication Current authentication (to get username)
+     * @return ReportDTO if exists, null otherwise
+     */
+    @GetMapping("/reports/word/{wordId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<ReportDTO>> getOpenReportForWord(
+            @PathVariable Long wordId,
+            Authentication authentication) {
+        try {
+            var userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            var username = userPrincipal.getUsername();
+
+            log.debug("Checking for OPEN report for user: {}, wordId: {}", username, wordId);
+            var report = userFeatureService.getOpenReportForWord(wordId, username);
+
+            if (report != null) {
+                return ResponseEntity.ok(ApiResponse.success("Open report found", report));
+            } else {
+                return ResponseEntity.ok(ApiResponse.success("No open report found", null));
+            }
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request to get report for word: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to get report for word: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to get report for word: " + e.getMessage()));
         }
     }
 }

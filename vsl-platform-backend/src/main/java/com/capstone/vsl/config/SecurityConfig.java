@@ -56,17 +56,26 @@ public class SecurityConfig {
 
     /**
      * CẤU HÌNH CORS CHUẨN
+     * Security: Uses environment variable for allowed origins in production
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfig = new CorsConfiguration();
         
-        // 1. Allowed Origins
-        corsConfig.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",
-                "http://localhost:5173",
-                "http://localhost:8080"
-        ));
+        // 1. Allowed Origins - Use environment variable or default to localhost for development
+        String allowedOriginsEnv = System.getenv("CORS_ALLOWED_ORIGINS");
+        if (allowedOriginsEnv != null && !allowedOriginsEnv.trim().isEmpty()) {
+            // Production: Parse from environment variable (comma-separated)
+            List<String> origins = Arrays.asList(allowedOriginsEnv.split(","));
+            corsConfig.setAllowedOrigins(origins);
+        } else {
+            // Development: Default localhost origins
+            corsConfig.setAllowedOrigins(Arrays.asList(
+                    "http://localhost:3000",
+                    "http://localhost:5173",
+                    "http://localhost:8080"
+            ));
+        }
         
         // 2. Allowed Methods (Bao gồm OPTIONS)
         corsConfig.setAllowedMethods(Arrays.asList(
@@ -87,6 +96,9 @@ public class SecurityConfig {
         // 4. Credentials & Exposed Headers
         corsConfig.setAllowCredentials(true);
         corsConfig.setExposedHeaders(List.of("Authorization"));
+        
+        // 5. Max Age for preflight requests (cache for 1 hour)
+        corsConfig.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfig);
@@ -111,6 +123,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/dictionary/search/**").permitAll()    // QUAN TRỌNG: Sửa dòng này để Healthcheck qua được
                 .requestMatchers("/api/dictionary/detail/**").permitAll()    // Đã sửa
                 .requestMatchers("/api/vsl/**").permitAll() // VSL gesture recognition endpoints
+                .requestMatchers("/api/proxy/agent-logging/**").permitAll() // Agent logging proxy (no auth required)
 
                 
                 // Swagger UI

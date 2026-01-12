@@ -30,5 +30,12 @@ public interface DictionaryRepository extends JpaRepository<Dictionary, Long> {
      */
     @Query(value = "SELECT * FROM dictionary ORDER BY RANDOM() LIMIT 1", nativeQuery = true)
     Optional<Dictionary> findRandom();
+
+    /**
+     * Get multiple random dictionary entries (PostgreSQL specific).
+     * @param limit Number of random entries to return
+     */
+    @Query(value = "SELECT * FROM dictionary ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
+    List<Dictionary> findRandomWords(@Param("limit") int limit);
 }
 

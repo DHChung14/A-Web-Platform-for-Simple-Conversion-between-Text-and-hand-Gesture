@@ -16,5 +16,6 @@ public class DashboardStatsDTO {
     private long totalUsers;
     private long totalWords;
     private long pendingContributions;
+    private long openReports;
 }
 

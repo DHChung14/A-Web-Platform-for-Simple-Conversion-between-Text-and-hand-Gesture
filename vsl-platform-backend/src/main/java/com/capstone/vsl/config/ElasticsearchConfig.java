@@ -2,6 +2,7 @@ package com.capstone.vsl.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.elasticsearch.repository.config.EnableElasticsearchRepositories;
 
 /**
  * Elasticsearch Configuration Documentation
@@ -48,6 +49,7 @@ import org.springframework.context.annotation.Configuration;
  * The Vietnamese analyzer setup is done at the Elasticsearch cluster level.
  */
 @Configuration
+@EnableElasticsearchRepositories(basePackages = "com.capstone.vsl.repository")
 @Slf4j
 public class ElasticsearchConfig {
     // Configuration is handled via application.properties

@@ -143,6 +143,34 @@ public class DictionaryService {
     }
 
     /**
+     * Get multiple random dictionary words
+     * @param count Number of random words to return
+     * @return List of random dictionary DTOs
+     */
+    @Transactional(readOnly = true)
+    public List<DictionaryDTO> getRandomWords(int count) {
+        if (count <= 0) {
+            throw new IllegalArgumentException("Count must be greater than 0");
+        }
+        
+        var dictionaries = dictionaryRepository.findRandomWords(count);
+        log.debug("Retrieved {} random dictionary words", dictionaries.size());
+        
+        return dictionaries.stream()
+                .map(this::entityToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get total count of dictionary words
+     * @return Total number of words in the dictionary
+     */
+    @Transactional(readOnly = true)
+    public long getTotalCount() {
+        return dictionaryRepository.count();
+    }
+
+    /**
      * Update an existing dictionary word
      * 1. Update in PostgreSQL
      * 2. Sync updated document to Elasticsearch
