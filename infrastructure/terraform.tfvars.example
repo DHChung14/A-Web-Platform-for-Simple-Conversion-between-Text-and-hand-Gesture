@@ -1,0 +1,27 @@
+# ==================== Terraform Variables Example ====================
+# Copy this file to terraform.tfvars and fill in your values
+# terraform.tfvars is in .gitignore, so it won't be committed
+# ======================================================================
+
+# AWS Configuration
+aws_region  = "ap-southeast-1"
+environment = "production"
+project_name = "vsl-platform"
+domain_name  = "canhnq.online"
+
+# EC2 Configuration
+ec2_instance_type = "t2.micro"
+
+# SSH Public Key (get from: cat ~/.ssh/id_rsa.pub)
+# Format: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC..."
+ssh_public_key = "YOUR_SSH_PUBLIC_KEY_HERE"
+
+# RDS Configuration
+rds_instance_class = "db.t2.micro"
+db_name            = "vsl_db"
+db_username        = "postgres"
+
+# Database Password (generate strong password)
+# Use: openssl rand -base64 32
+db_password = "YOUR_STRONG_DB_PASSWORD_HERE"
+

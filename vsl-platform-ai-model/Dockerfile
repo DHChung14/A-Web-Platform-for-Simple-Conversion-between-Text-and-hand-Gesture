@@ -27,6 +27,8 @@ ENV FLASK_ENV=production
 # Expose port
 EXPOSE 5000
 
-# Run with gunicorn (or python app.py for development)
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "2", "--timeout", "120", "app:app"]
+# Run with gunicorn (workers and threads configurable via env vars)
+# Default: 1 worker, 2 threads (optimized for Free Tier)
+# Override with GUNICORN_WORKERS and GUNICORN_THREADS env vars
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 --workers ${GUNICORN_WORKERS:-1} --threads ${GUNICORN_THREADS:-2} --timeout 120 app:app"]
 

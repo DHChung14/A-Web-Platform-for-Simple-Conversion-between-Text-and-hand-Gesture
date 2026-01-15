@@ -1,0 +1,11 @@
+api_url = "https://api.canhnq.online"
+domain_name = "canhnq.online"
+ec2_instance_id = "i-0ce5cd9cee27874fc"
+ec2_public_dns = "ec2-52-220-1-69.ap-southeast-1.compute.amazonaws.com"
+ec2_public_ip = "52.220.1.69"
+rds_address = "vsl-platform-db.cjaqs60io7ay.ap-southeast-1.rds.amazonaws.com"
+rds_connection_string = <sensitive>
+rds_endpoint = "vsl-platform-db.cjaqs60io7ay.ap-southeast-1.rds.amazonaws.com:5432"
+rds_port = 5432
+ssh_command = "ssh -i <your-key.pem> ec2-user@52.220.1.69"
+website_url = "https://canhnq.online"

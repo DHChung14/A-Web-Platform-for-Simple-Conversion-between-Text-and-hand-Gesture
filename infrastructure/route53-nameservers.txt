@@ -1,0 +1,8 @@
+Route 53 Name Servers cho canhnq.online:
+
+1. ns-1035.awsdns-01.org
+2. ns-539.awsdns-03.net
+3. ns-1679.awsdns-17.co.uk
+4. ns-152.awsdns-19.com
+
+Cần update 4 Name Servers này ở Namecheap trước khi chạy terraform apply.

@@ -1,0 +1,190 @@
+# ==================== VSL Platform - GitLab CI/CD Pipeline ====================
+# Pipeline tự động build, test và deploy lên AWS EC2
+# =================================================================================
+
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  # Docker images sẽ được push lên GitLab Container Registry
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  FRONTEND_IMAGE: $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA
+  BACKEND_IMAGE: $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA
+  AI_SERVICE_IMAGE: $CI_REGISTRY_IMAGE/ai-service:$CI_COMMIT_SHORT_SHA
+
+# ==================== Build Stage ====================
+
+build-frontend:
+  stage: build
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - cd vsl-platform-frontend
+    - docker build -t $FRONTEND_IMAGE -f Dockerfile .
+    - docker push $FRONTEND_IMAGE
+  only:
+    - main
+    - develop
+  tags:
+    - docker
+
+build-backend:
+  stage: build
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - cd vsl-platform-backend
+    - docker build -t $BACKEND_IMAGE -f Dockerfile .
+    - docker push $BACKEND_IMAGE
+  only:
+    - main
+    - develop
+  tags:
+    - docker
+
+build-ai-service:
+  stage: build
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - cd vsl-platform-ai-model
+    - docker build -t $AI_SERVICE_IMAGE -f Dockerfile .
+    - docker push $AI_SERVICE_IMAGE
+  only:
+    - main
+    - develop
+  tags:
+    - docker
+
+# ==================== Test Stage ====================
+
+test-frontend:
+  stage: test
+  image: node:20-alpine
+  script:
+    - cd vsl-platform-frontend
+    - npm ci
+    - npm run lint
+    - npm run build
+  only:
+    - main
+    - develop
+    - merge_requests
+  tags:
+    - docker
+
+test-backend:
+  stage: test
+  image: maven:3.9-eclipse-temurin-17
+  services:
+    - postgres:16-alpine
+  variables:
+    POSTGRES_DB: vsl_test_db
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: password
+    SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/vsl_test_db
+  script:
+    - cd vsl-platform-backend
+    - mvn clean test -DskipTests=false
+  only:
+    - main
+    - develop
+    - merge_requests
+  tags:
+    - docker
+
+# ==================== Deploy Stage ====================
+
+deploy-to-aws:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client curl
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+  script:
+    - |
+      ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'ENDSSH'
+        # Login to GitLab Container Registry
+        docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+        
+        # Pull latest images
+        docker pull $FRONTEND_IMAGE
+        docker pull $BACKEND_IMAGE
+        docker pull $AI_SERVICE_IMAGE
+        
+        # Tag images as latest
+        docker tag $FRONTEND_IMAGE vsl-platform-frontend:latest
+        docker tag $BACKEND_IMAGE vsl-platform-backend:latest
+        docker tag $AI_SERVICE_IMAGE vsl-platform-ai-service:latest
+        
+        # Update docker-compose.free-tier.yml với images mới
+        cd ~/vsl-platform/vsl-platform-backend
+        
+        # Stop old containers
+        docker-compose -f docker-compose.free-tier.yml down
+        
+        # Pull và start new containers
+        docker-compose -f docker-compose.free-tier.yml pull
+        docker-compose -f docker-compose.free-tier.yml up -d
+        
+        # Clean up old images
+        docker image prune -f
+        
+        # Check health
+        sleep 10
+        docker-compose -f docker-compose.free-tier.yml ps
+      ENDSSH
+  only:
+    - main
+  when: manual
+  tags:
+    - aws-deploy
+  environment:
+    name: production
+    url: http://$EC2_HOST
+
+# ==================== Rollback Job ====================
+
+rollback:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+  script:
+    - |
+      ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'ENDSSH'
+        cd ~/vsl-platform/vsl-platform-backend
+        
+        # Rollback to previous version
+        docker-compose -f docker-compose.free-tier.yml down
+        docker-compose -f docker-compose.free-tier.yml up -d
+        
+        echo "Rollback completed"
+      ENDSSH
+  only:
+    - main
+  when: manual
+  tags:
+    - aws-deploy
+
