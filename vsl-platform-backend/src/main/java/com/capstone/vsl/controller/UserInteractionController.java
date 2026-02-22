@@ -73,27 +73,45 @@ public class UserInteractionController {
 
     /**
      * DELETE /api/user/history
-     * Clear user's search history
+     * Clear user's search history (delete all)
+     * Request Body (optional): { "ids": [1, 2, 3] } to delete selected items
+     * If no body or empty ids, deletes all history
      */
     @DeleteMapping("/history")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<String>> clearHistory(Authentication authentication) {
+    public ResponseEntity<ApiResponse<String>> deleteHistory(
+            @RequestBody(required = false) java.util.Map<String, java.util.List<Long>> request,
+            Authentication authentication) {
         try {
             var userPrincipal = (UserPrincipal) authentication.getPrincipal();
             var username = userPrincipal.getUsername();
 
-            log.info("Clearing search history for user: {}", username);
+            // If request body contains "ids", delete selected items
+            if (request != null && request.containsKey("ids")) {
+                var ids = request.get("ids");
+                if (ids != null && !ids.isEmpty()) {
+                    log.info("Deleting selected search history for user: {}, IDs: {}", username, ids);
+                    var deletedCount = userFeatureService.deleteSearchHistoryByIds(ids, username);
+                    return ResponseEntity.ok(ApiResponse.success(
+                            String.format("Deleted %d history entries", deletedCount),
+                            "OK"
+                    ));
+                }
+            }
+
+            // Otherwise, delete all history
+            log.info("Clearing all search history for user: {}", username);
             userFeatureService.clearUserSearchHistory(username);
 
-            return ResponseEntity.ok(ApiResponse.success("Search history cleared", "OK"));
+            return ResponseEntity.ok(ApiResponse.success("All search history cleared", "OK"));
         } catch (IllegalArgumentException e) {
-            log.warn("Invalid request to clear history: {}", e.getMessage());
+            log.warn("Invalid request to delete history: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
-            log.error("Failed to clear search history: {}", e.getMessage(), e);
+            log.error("Failed to delete search history: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Failed to clear search history: " + e.getMessage()));
+                    .body(ApiResponse.error("Failed to delete search history: " + e.getMessage()));
         }
     }
 

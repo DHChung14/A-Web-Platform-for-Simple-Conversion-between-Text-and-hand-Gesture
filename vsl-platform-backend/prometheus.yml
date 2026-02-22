@@ -1,0 +1,32 @@
+# Prometheus Configuration for VSL Platform Backend Monitoring
+# Scrapes metrics from Spring Boot Actuator /actuator/prometheus endpoint
+
+global:
+  scrape_interval: 15s      # Scrape targets every 15 seconds
+  evaluation_interval: 15s  # Evaluate rules every 15 seconds
+  scrape_timeout: 10s       # Timeout for scrape requests
+
+# Alertmanager configuration (optional - can be added later)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: []
+
+# Load rules once and periodically evaluate them (optional - can be added later)
+# rule_files:
+#   - "alert_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Scrape Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Scrape Spring Boot Backend metrics
+  - job_name: 'vsl-backend'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['backend:8080']  # Use Docker service name for container-to-container communication
+    scrape_interval: 15s
+    scrape_timeout: 10s

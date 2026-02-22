@@ -944,7 +944,12 @@ export default function ProfilePage() {
                               "rgba(0, 255, 65, 0.3)";
                           }}
                         >
-                          {fav.videoUrl && (
+                          {fav.videoUrl && 
+                           fav.videoUrl.trim() !== "" && 
+                           fav.videoUrl.trim() !== "string" &&
+                           (fav.videoUrl.startsWith("http://") || 
+                            fav.videoUrl.startsWith("https://") ||
+                            fav.videoUrl.startsWith("/uploads/")) && (
                             <div
                               style={{
                                 width: "100%",
@@ -965,6 +970,13 @@ export default function ProfilePage() {
                                 }}
                                 muted
                                 playsInline
+                                onError={(e) => {
+                                  // Hide video element if it fails to load
+                                  const target = e.target as HTMLVideoElement;
+                                  if (target.parentElement) {
+                                    target.parentElement.style.display = 'none';
+                                  }
+                                }}
                               />
                               <div
                                 style={{

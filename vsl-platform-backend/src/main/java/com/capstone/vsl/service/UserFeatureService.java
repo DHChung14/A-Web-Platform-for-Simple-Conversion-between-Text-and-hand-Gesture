@@ -105,7 +105,7 @@ public class UserFeatureService {
     }
 
     /**
-     * Clear user's search history
+     * Clear user's search history (delete all)
      *
      * @param username Username of the authenticated user
      */
@@ -115,7 +115,58 @@ public class UserFeatureService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
 
         searchHistoryRepository.deleteByUser(user);
-        log.info("Cleared search history for user: {}", username);
+        log.info("Cleared all search history for user: {}", username);
+    }
+
+    /**
+     * Delete selected search history entries by IDs
+     * Security: Only deletes histories that belong to the authenticated user
+     *
+     * @param historyIds List of search history IDs to delete
+     * @param username Username of the authenticated user
+     * @return Number of deleted entries
+     */
+    @Transactional
+    public int deleteSearchHistoryByIds(List<Long> historyIds, String username) {
+        if (historyIds == null || historyIds.isEmpty()) {
+            throw new IllegalArgumentException("History IDs list cannot be empty");
+        }
+
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+
+        // Verify all histories belong to the user before deleting
+        var histories = historyIds.stream()
+                .map(id -> searchHistoryRepository.findByIdAndUser(id, user))
+                .filter(java.util.Optional::isPresent)
+                .map(java.util.Optional::get)
+                .collect(Collectors.toList());
+
+        if (histories.size() != historyIds.size()) {
+            // Some IDs don't belong to this user or don't exist
+            var foundIds = histories.stream()
+                    .map(SearchHistory::getId)
+                    .collect(Collectors.toSet());
+            var notFoundIds = historyIds.stream()
+                    .filter(id -> !foundIds.contains(id))
+                    .collect(Collectors.toList());
+            
+            log.warn("Some history IDs not found or don't belong to user {}: {}", username, notFoundIds);
+            throw new IllegalArgumentException(
+                    "Some history entries not found or you don't have permission to delete them. " +
+                    "Invalid IDs: " + notFoundIds
+            );
+        }
+
+        // Delete all verified histories
+        var idsToDelete = histories.stream()
+                .map(SearchHistory::getId)
+                .collect(Collectors.toList());
+        
+        searchHistoryRepository.deleteByIdInAndUser(idsToDelete, user);
+        log.info("Deleted {} search history entries for user: {}", histories.size(), username);
+        
+        return histories.size();
     }
 
     /**

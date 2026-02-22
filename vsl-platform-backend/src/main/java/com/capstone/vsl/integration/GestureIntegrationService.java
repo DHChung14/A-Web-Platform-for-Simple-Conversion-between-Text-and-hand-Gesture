@@ -4,6 +4,7 @@ import com.capstone.vsl.integration.dto.AiResponseDTO;
 import com.capstone.vsl.integration.dto.GestureInputDTO;
 import com.capstone.vsl.integration.exception.AiServiceUnavailableException;
 import com.capstone.vsl.integration.exception.ExternalServiceException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -15,6 +16,7 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
@@ -73,14 +75,55 @@ public class GestureIntegrationService {
         try {
             log.debug("Calling unified AI service with {} frames", frameCount);
 
-            ResponseEntity<AiResponseDTO> response = aiRestClient.post()
+            // Use byte[] response to be resilient to non-standard content types
+            // (e.g., application/octet-stream) and then convert to String manually.
+            ResponseEntity<byte[]> byteResponse = aiRestClient.post()
                     .uri("/predict")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(requestBody)
                     .retrieve()
-                    .toEntity(AiResponseDTO.class);
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), 
+                            (request, response) -> {
+                                // Extract error message from response body
+                                String errorBody = "Unknown error";
+                                try {
+                                    if (response.getBody() != null) {
+                                        errorBody = new String(response.getBody().readAllBytes());
+                                    }
+                                } catch (Exception e) {
+                                    log.warn("Could not read error response body: {}", e.getMessage());
+                                }
+                                log.error("AI Service returned error status {}: {}", response.getStatusCode(), errorBody);
+                                throw new HttpServerErrorException(
+                                        response.getStatusCode(),
+                                        "AI Service error: " + errorBody);
+                            })
+                    .toEntity(byte[].class);
 
-            var responseBody = response.getBody();
+            var responseBytes = byteResponse.getBody();
+            var statusCode = byteResponse.getStatusCode();
+            
+            // Validate response
+            if (responseBytes == null || responseBytes.length == 0) {
+                throw new ExternalServiceException("AI Service returned empty response", 
+                        HttpStatus.INTERNAL_SERVER_ERROR.value());
+            }
+
+            // Convert raw bytes to String using UTF-8 (AI service should return JSON text)
+            var responseBodyStr = new String(responseBytes, StandardCharsets.UTF_8);
+            
+            // Parse JSON response
+            AiResponseDTO responseBody;
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                responseBody = objectMapper.readValue(responseBodyStr, AiResponseDTO.class);
+            } catch (Exception e) {
+                log.error("Failed to parse AI Service response as JSON. Response: {}", responseBodyStr);
+                throw new ExternalServiceException(
+                        "AI Service returned invalid JSON response: " + e.getMessage(),
+                        HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                        e);
+            }
             
             // Validate response
             if (responseBody == null) {
@@ -154,51 +197,90 @@ public class GestureIntegrationService {
         try {
             log.debug("Calling AI service /fix-diacritics endpoint");
 
-            ResponseEntity<Map> response = aiRestClient.post()
+            // Use String response to handle content-type issues (similar to predict endpoint)
+            ResponseEntity<String> stringResponse = aiRestClient.post()
                     .uri("/fix-diacritics")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(requestBody)
                     .retrieve()
-                    .toEntity(Map.class);
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), 
+                            (request, response) -> {
+                                // Extract error message from response body
+                                String errorBody = "Unknown error";
+                                try {
+                                    if (response.getBody() != null) {
+                                        errorBody = new String(response.getBody().readAllBytes());
+                                    }
+                                } catch (Exception e) {
+                                    log.warn("Could not read error response body: {}", e.getMessage());
+                                }
+                                log.error("AI Service returned error status {}: {}", response.getStatusCode(), errorBody);
+                                throw new HttpServerErrorException(
+                                        response.getStatusCode(),
+                                        "AI Service error: " + errorBody);
+                            })
+                    .toEntity(String.class);
 
-            var responseBody = response.getBody();
+            var responseBodyStr = stringResponse.getBody();
             
             // Validate response
-            if (responseBody == null) {
-                throw new ExternalServiceException("AI Service returned null response for diacritics", 
-                        HttpStatus.INTERNAL_SERVER_ERROR.value());
-            }
-
-            // Extract fixed text from response
-            Object fixedTextObj = responseBody.get("fixed_text");
-            if (fixedTextObj == null) {
-                log.warn("AI Service did not return fixed_text, returning original text");
+            if (responseBodyStr == null || responseBodyStr.trim().isEmpty()) {
+                log.warn("AI Service returned empty response, returning original text");
                 return rawText;
             }
 
-            String fixedText = fixedTextObj.toString().trim();
-            log.info("Diacritics fixed: '{}' → '{}'", rawText, fixedText);
-            return fixedText;
+            // Parse JSON response manually
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                Map<String, Object> responseMap = objectMapper.readValue(responseBodyStr, Map.class);
+                
+                // Check if request was successful
+                Object successObj = responseMap.get("success");
+                if (Boolean.FALSE.equals(successObj)) {
+                    Object errorObj = responseMap.get("error");
+                    log.warn("AI Service returned error: {}, returning original text", errorObj);
+                    return rawText;
+                }
+
+                // Extract fixed text from response
+                Object fixedTextObj = responseMap.get("fixed_text");
+                if (fixedTextObj == null) {
+                    log.warn("AI Service did not return fixed_text, returning original text");
+                    return rawText;
+                }
+
+                String fixedText = fixedTextObj.toString().trim();
+                log.info("Diacritics fixed: '{}' → '{}'", rawText, fixedText);
+                return fixedText;
+            } catch (Exception e) {
+                log.error("Failed to parse AI Service response as JSON. Response: {}", responseBodyStr, e);
+                // Return original text if parsing fails
+                return rawText;
+            }
 
         } catch (ResourceAccessException e) {
-            log.error("AI Service is unavailable: {}", e.getMessage());
-            throw new AiServiceUnavailableException("AI Service is offline", e);
+            // AI service unreachable (offline / timeout)
+            log.error("AI Service is unavailable during diacritics fix: {}", e.getMessage());
+            // Graceful degradation: return original text so UI vẫn hoạt động
+            log.warn("Returning original text due to AI Service unavailability");
+            return rawText;
         } catch (HttpServerErrorException e) {
-            log.error("AI Service returned server error: {} - {}", 
+            // AI service returned 5xx / 4xx that we escalated as server error
+            log.error("AI Service returned server error during diacritics fix: {} - {}",
                     e.getStatusCode(), e.getMessage());
-            throw new ExternalServiceException(
-                    "AI Service error: " + e.getStatusCode(), 
-                    e.getStatusCode().value(), 
-                    e);
+            // Graceful degradation: log and return original text instead of propagating 5xx
+            log.warn("Returning original text due to AI Service server error: {}", rawText);
+            return rawText;
         } catch (ExternalServiceException e) {
-            // Re-throw as-is
-            throw e;
+            // Previously we re-threw; now we degrade gracefully
+            log.error("ExternalServiceException during diacritics fix: {}", e.getMessage(), e);
+            log.warn("Returning original text due to external service error");
+            return rawText;
         } catch (Exception e) {
             log.error("Failed to fix diacritics: {}", e.getMessage(), e);
-            throw new ExternalServiceException(
-                    "Failed to fix diacritics: " + e.getMessage(),
-                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    e);
+            // Return original text instead of throwing exception to allow graceful degradation
+            log.warn("Returning original text due to error: {}", e.getMessage());
+            return rawText;
         }
     }
 }

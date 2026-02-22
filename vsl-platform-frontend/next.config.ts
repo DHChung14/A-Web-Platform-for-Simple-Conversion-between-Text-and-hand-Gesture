@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_API_URL:
       process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api",
   },
+
+  // Optimize package imports to reduce bundle size
+  experimental: {
+    optimizePackageImports: ['@/components'],
+  },
 };
 
 export default nextConfig;

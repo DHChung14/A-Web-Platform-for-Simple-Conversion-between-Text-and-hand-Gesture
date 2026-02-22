@@ -28,10 +28,12 @@ COPY . .
 
 # CRITICAL: Set build-time environment variables
 # NEXT_PUBLIC_* vars MUST be set at build time to be embedded in client bundle
-# NOTE: Browser runs on host machine, NOT in container, so use localhost:8081
+# NOTE: For production, use API domain. For local dev, override with build arg.
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-ENV NEXT_PUBLIC_API_URL=http://localhost:8081/api
+# Default to production API URL, can be overridden with --build-arg
+ARG NEXT_PUBLIC_API_URL=https://api.canhnq.online/api
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 # Build Next.js application
 # This creates .next/standalone for production

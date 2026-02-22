@@ -13,6 +13,7 @@ import com.capstone.vsl.entity.ContributionStatus;
 import com.capstone.vsl.entity.ReportStatus;
 import com.capstone.vsl.security.UserPrincipal;
 import com.capstone.vsl.service.AdminService;
+import com.capstone.vsl.service.DictionaryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,7 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final DictionaryService dictionaryService;
 
     // ==================== User Management ====================
 
@@ -406,6 +408,35 @@ public class AdminController {
             log.error("Failed to resolve report {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to resolve report: " + e.getMessage()));
+        }
+    }
+
+    // ==================== Dictionary Management ====================
+
+    /**
+     * DELETE /api/admin/dictionary/{id}
+     * Delete a dictionary word (ADMIN only)
+     *
+     * @param id Dictionary word ID
+     * @return Success message
+     */
+    @DeleteMapping("/dictionary/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<String>> deleteDictionaryWord(@PathVariable Long id) {
+        try {
+            log.info("Admin deleting dictionary word: {}", id);
+            dictionaryService.deleteWord(id);
+            return ResponseEntity.ok(
+                    ApiResponse.success("Dictionary word deleted successfully", "OK")
+            );
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request to delete dictionary word {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to delete dictionary word {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to delete dictionary word: " + e.getMessage()));
         }
     }
 

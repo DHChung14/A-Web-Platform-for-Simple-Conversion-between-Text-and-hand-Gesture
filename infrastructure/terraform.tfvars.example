@@ -10,7 +10,9 @@ project_name = "vsl-platform"
 domain_name  = "canhnq.online"
 
 # EC2 Configuration
-ec2_instance_type = "t2.micro"
+# Upgraded to t3.small (2GB RAM) for better performance and stability
+# t3.micro (1GB RAM) is too small for 3 services (Frontend + Backend + AI Service)
+ec2_instance_type = "t3.small"
 
 # SSH Public Key (get from: cat ~/.ssh/id_rsa.pub)
 # Format: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC..."

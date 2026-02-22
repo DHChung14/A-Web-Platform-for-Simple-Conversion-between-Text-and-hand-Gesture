@@ -146,6 +146,9 @@ services:
     build:
       context: ../vsl-platform-frontend
       dockerfile: Dockerfile
+      args:
+        # Build-time argument: NEXT_PUBLIC_* vars must be set at build time
+        NEXT_PUBLIC_API_URL: http://localhost:8081/api
     container_name: vsl-frontend
     ports:
       - "3000:3000" # Host:Container
@@ -171,14 +174,88 @@ services:
       retries: 3
       start_period: 60s
 
+  # ==================== Service 6: Prometheus (Metrics Collection) ====================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: vsl-prometheus
+    ports:
+      - "9090:9090" # Host:Container (Prometheus UI)
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    networks:
+      - vsl-network
+    restart: unless-stopped
+    depends_on:
+      - backend
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ==================== Service 7: Grafana (Metrics Visualization) ====================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: vsl-grafana
+    ports:
+      - "3001:3000" # Host:Container (Grafana UI on port 3001 to avoid conflict with frontend)
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+      - GF_INSTALL_PLUGINS=
+      - TZ=Asia/Ho_Chi_Minh
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - vsl-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
 # ==================== Networks ====================
 networks:
   vsl-network:
     driver: bridge
     name: vsl-network
+
+# ==================== Volumes ====================
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
 # ==================== Notes ====================
 # - Volumes (postgres-data, elasticsearch-data) are local directories (bind mounts)
-# - Health checks ensure proper startup sequence: DB/ES/AI → Backend → Frontend
+# - Health checks ensure proper startup sequence: DB/ES/AI → Backend → Frontend → Prometheus → Grafana
 # - Frontend uses host.docker.internal:8081 for browser-based API calls
 # - Backend uses service names (postgres:5432, elasticsearch:9200, ai-service:5000) for internal calls
+# - Prometheus scrapes backend metrics from backend:8080/actuator/prometheus (container-to-container)
+# - Grafana connects to Prometheus at prometheus:9090 (container-to-container)
+# - Monitoring stack: Backend (metrics source) → Prometheus (collector) → Grafana (visualization)
 

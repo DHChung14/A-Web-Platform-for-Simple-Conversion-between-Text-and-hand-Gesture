@@ -1,6 +1,14 @@
 /* Dictionary Page Styles - CSS Module */
 /* Note: Global body styles should be in globals.css */
 
+/* Page Wrapper - Flexbox layout to keep footer at bottom */
+.page-wrapper {
+  min-height: 100vh;
+  background-color: #050505;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Status Bar Header */
 .status-bar {
   display: flex;
@@ -129,7 +137,7 @@
 /* Results Area */
 .results {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, 1fr); /* 3 từ một dòng */
   gap: 20px;
   margin-bottom: 40px;
 }
@@ -215,8 +223,9 @@
   align-items: center;
   padding: 20px 24px;
   border-top: 1px solid #00ff41;
-  margin-top: 60px;
+  margin-top: auto; /* Push footer to bottom */
   background-color: #050505;
+  width: 100%;
 }
 
 .footer-button {
@@ -239,6 +248,14 @@
 }
 
 /* Responsive */
+/* Tablet: 2 cột */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .results {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile: 1 cột */
 @media (max-width: 768px) {
   .status-bar {
     flex-direction: column;
@@ -255,7 +272,7 @@
   }
 
   .results {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr; /* Mobile: 1 cột */
   }
 
   .footer {

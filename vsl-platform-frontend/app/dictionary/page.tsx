@@ -165,7 +165,7 @@ export default function DictionaryPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#050505" }}>
+    <div className={styles["page-wrapper"]}>
       {/* Status Bar */}
       <div className={styles["status-bar"]}>
         <div className={styles["status-bar-left"]}>

@@ -5,8 +5,9 @@ import com.capstone.vsl.dto.DictionaryDTO;
 import com.capstone.vsl.entity.Dictionary;
 import com.capstone.vsl.repository.DictionaryRepository;
 import com.capstone.vsl.repository.DictionarySearchRepository;
-import lombok.RequiredArgsConstructor;
+import com.capstone.vsl.repository.ReportRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,12 +27,28 @@ import java.util.stream.Collectors;
  * 3. Mark sync status in PostgreSQL
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class DictionaryService {
 
     private final DictionaryRepository dictionaryRepository;
-    private final DictionarySearchRepository dictionarySearchRepository;
+    private final ReportRepository reportRepository;
+    // Optional: Only available when Elasticsearch is enabled
+    // For Free Tier deployment without Elasticsearch, this will be null
+    private DictionarySearchRepository dictionarySearchRepository;
+
+    // Constructor with required repositories
+    @Autowired
+    public DictionaryService(DictionaryRepository dictionaryRepository, ReportRepository reportRepository) {
+        this.dictionaryRepository = dictionaryRepository;
+        this.reportRepository = reportRepository;
+        this.dictionarySearchRepository = null; // Will be set via setter if available
+    }
+    
+    // Optional setter for Elasticsearch repository (only called if bean exists)
+    @Autowired(required = false)
+    public void setDictionarySearchRepository(DictionarySearchRepository dictionarySearchRepository) {
+        this.dictionarySearchRepository = dictionarySearchRepository;
+    }
 
     /**
      * Search dictionary entries
@@ -46,20 +63,33 @@ public class DictionaryService {
             return List.of();
         }
 
-        // Try Elasticsearch first for fuzzy matching
-        try {
-            log.debug("Searching Elasticsearch for query: {}", query);
-            var esResults = dictionarySearchRepository
-                    .findByWordContainingIgnoreCaseOrDefinitionContainingIgnoreCase(query, query);
-            
-            if (!esResults.isEmpty()) {
-                log.debug("Found {} results from Elasticsearch", esResults.size());
-                return esResults.stream()
-                        .map(this::documentToDTO)
-                        .collect(Collectors.toList());
+        // Try Elasticsearch first for fuzzy matching (if available)
+        if (dictionarySearchRepository != null) {
+            try {
+                log.debug("Searching Elasticsearch for query: {}", query);
+                List<DictionaryDocument> esResults;
+                
+                // For very short queries (1-2 chars), ONLY search in the 'word' field.
+                // This prevents irrelevant matches where a common letter/word appears in the definition.
+                // Example: searching "b" shouldn't return "NÓI CHUYỆN" just because definition has "bằng".
+                if (query.trim().length() <= 2) {
+                    log.debug("Short query detected (<= 2 chars), using word-only search");
+                    esResults = dictionarySearchRepository.searchByWordOnly(query);
+                } else {
+                    esResults = dictionarySearchRepository.searchByQuery(query);
+                }
+                
+                if (!esResults.isEmpty()) {
+                    log.debug("Found {} results from Elasticsearch", esResults.size());
+                    return esResults.stream()
+                            .map(this::documentToDTO)
+                            .collect(Collectors.toList());
+                }
+            } catch (Exception e) {
+                log.warn("Elasticsearch search failed, falling back to PostgreSQL: {}", e.getMessage());
             }
-        } catch (Exception e) {
-            log.warn("Elasticsearch search failed, falling back to PostgreSQL: {}", e.getMessage());
+        } else {
+            log.debug("Elasticsearch not available, using PostgreSQL search");
         }
 
         // Fallback to PostgreSQL ILIKE search
@@ -106,10 +136,11 @@ public class DictionaryService {
         }
 
         // 1. Save to PostgreSQL (Primary - Source of Truth)
+        // Handle null videoUrl - set to empty string if null (video URL is optional)
         var dictionary = Dictionary.builder()
                 .word(dto.getWord())
                 .definition(dto.getDefinition())
-                .videoUrl(dto.getVideoUrl())
+                .videoUrl(dto.getVideoUrl() != null ? dto.getVideoUrl() : "") // Default to empty string if null
                 .elasticSynced(false) // Will be updated after ES sync
                 .build();
 
@@ -198,8 +229,9 @@ public class DictionaryService {
 
     /**
      * Delete a dictionary word
-     * 1. Delete from Elasticsearch
-     * 2. Delete from PostgreSQL
+     * 1. Delete related Reports (foreign key constraint)
+     * 2. Delete from Elasticsearch
+     * 3. Delete from PostgreSQL (cascade will handle SearchHistory and UserFavorite)
      *
      * @param id Dictionary ID
      */
@@ -208,11 +240,28 @@ public class DictionaryService {
         var dictionary = dictionaryRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Dictionary word not found: " + id));
 
+        // Delete related Reports first (to avoid foreign key constraint violation)
+        // Note: Reports are not cascade-deleted, so we need to delete them manually
         try {
-            dictionarySearchRepository.deleteById(dictionary.getId());
-            log.info("Deleted dictionary word from Elasticsearch: id={}", dictionary.getId());
+            var reports = reportRepository.findByDictionary(dictionary);
+            if (!reports.isEmpty()) {
+                reportRepository.deleteAll(reports);
+                log.info("Deleted {} report(s) related to dictionary word id={}", reports.size(), dictionary.getId());
+            }
         } catch (Exception e) {
-            log.warn("Failed to delete dictionary word {} from Elasticsearch: {}", dictionary.getId(), e.getMessage());
+            log.warn("Failed to delete reports for dictionary word {}: {}", dictionary.getId(), e.getMessage());
+            // Continue with deletion even if report deletion fails
+        }
+
+        if (dictionarySearchRepository != null) {
+            try {
+                dictionarySearchRepository.deleteById(dictionary.getId());
+                log.info("Deleted dictionary word from Elasticsearch: id={}", dictionary.getId());
+            } catch (Exception e) {
+                log.warn("Failed to delete dictionary word {} from Elasticsearch: {}", dictionary.getId(), e.getMessage());
+            }
+        } else {
+            log.debug("Elasticsearch not available, skipping delete from Elasticsearch");
         }
 
         dictionaryRepository.delete(dictionary);
@@ -227,6 +276,11 @@ public class DictionaryService {
      */
     @Async("elasticsearchSyncExecutor")
     public void syncToElasticsearch(Dictionary dictionary) {
+        if (dictionarySearchRepository == null) {
+            log.debug("Elasticsearch not available, skipping sync for word: {}", dictionary.getWord());
+            return;
+        }
+        
         try {
             var document = DictionaryDocument.builder()
                     .id(dictionary.getId())
@@ -248,6 +302,63 @@ public class DictionaryService {
                     dictionary.getId(), e.getMessage());
             // Note: We don't throw exception here to avoid breaking the main flow
             // The sync can be retried later if needed
+        }
+    }
+
+    /**
+     * Sync all dictionary words to Elasticsearch
+     * Useful for initial data migration or re-indexing
+     */
+    @Async("elasticsearchSyncExecutor")
+    public void syncAllToElasticsearch() {
+        if (dictionarySearchRepository == null) {
+            log.warn("Elasticsearch not available, skipping full sync");
+            return;
+        }
+
+        log.info("Starting full sync to Elasticsearch...");
+        try {
+            long count = dictionaryRepository.count();
+            log.info("Found {} words in PostgreSQL to sync", count);
+
+            int pageSize = 1000;
+            for (int i = 0; i < count; i += pageSize) {
+                // Fetch batch from DB
+                // Note: using simple pagination here. For huge datasets, key-set pagination is better.
+                // But for dictionary (tens of thousands), this is fine.
+                // We use stream or separate query to avoid memory issues if possible, 
+                // but standard findAll(Pageable) is easiest.
+                
+                // For simplicity in this codebase, let's just fetch all (if not huge) 
+                // or use simple chunks. Given strict time, let's load all if < 50k, 
+                // else chunks. Assuming < 50k words for now.
+                
+                var allWords = dictionaryRepository.findAll(); 
+                // Optimizing: Convert to Documents
+                var documents = allWords.stream()
+                        .map(entity -> DictionaryDocument.builder()
+                                .id(entity.getId())
+                                .word(entity.getWord())
+                                .definition(entity.getDefinition())
+                                .videoUrl(entity.getVideoUrl())
+                                .elasticSynced(true)
+                                .build())
+                        .collect(Collectors.toList());
+                
+                dictionarySearchRepository.saveAll(documents);
+                
+                // Update synced status in DB
+                allWords.forEach(w -> w.setElasticSynced(true));
+                dictionaryRepository.saveAll(allWords);
+                
+                log.info("Synced {} words to Elasticsearch", documents.size());
+                break; // Since we loaded ALL, we break. Use loop if using pagination.
+            }
+            
+            log.info("Full sync to Elasticsearch completed successfully");
+
+        } catch (Exception e) {
+            log.error("Failed to sync all words to Elasticsearch: {}", e.getMessage(), e);
         }
     }
 

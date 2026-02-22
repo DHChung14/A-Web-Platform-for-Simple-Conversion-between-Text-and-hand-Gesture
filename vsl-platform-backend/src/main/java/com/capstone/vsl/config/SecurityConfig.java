@@ -116,6 +116,9 @@ public class SecurityConfig {
                 // --- [QUAN TRỌNG] FIX LỖI CORS ---
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             
+                // --- ACTUATOR ENDPOINTS (for Prometheus monitoring) ---
+                .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll() // Allow Prometheus to scrape metrics
+            
                 // --- PUBLIC ENDPOINTS (Xóa /v1 để khớp với Controller) ---
                 .requestMatchers("/api/auth/**").permitAll()                 // Đã sửa
                 .requestMatchers("/api/recognition/**").permitAll()          // Đã sửa
@@ -127,7 +130,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/dictionary/count").permitAll()        // Public: Total word count for guest and users
                 .requestMatchers("/api/vsl/**").permitAll() // VSL gesture recognition endpoints
                 .requestMatchers("/api/proxy/agent-logging/**").permitAll() // Agent logging proxy (no auth required)
-
+                .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll() // Public access to uploaded videos
                 
                 // Swagger UI
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
@@ -135,6 +138,7 @@ public class SecurityConfig {
                 // --- PRIVATE ENDPOINTS ---
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")           // Đã sửa
                 .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN") // Đã sửa
+                .requestMatchers("/api/upload/**").hasAnyRole("USER", "ADMIN") // Upload requires authentication
                 
                 // --- MẶC ĐỊNH ---
                 .anyRequest().authenticated()

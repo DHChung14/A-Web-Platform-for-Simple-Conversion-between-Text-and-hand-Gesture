@@ -28,8 +28,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             .build();
 
     private static final Bandwidth AUTH_RATE_LIMIT = Bandwidth.builder()
-            .capacity(5)
-            .refillGreedy(5, Duration.ofMinutes(1))
+            .capacity(10) // Tăng từ 5 → 10 requests
+            .refillGreedy(10, Duration.ofMinutes(1)) // Refill 10 requests mỗi phút
             .build();
 
     private final RateLimitingService rateLimitingService;
@@ -78,8 +78,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private void writeTooManyRequests(HttpServletResponse response) throws IOException {
         response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
         response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
         response.getWriter().write("""
-                {"message":"Too many requests. Please slow down."}
+                {"code":429,"message":"Too many requests. Please wait a moment and try again.","data":null}
                 """);
     }
 

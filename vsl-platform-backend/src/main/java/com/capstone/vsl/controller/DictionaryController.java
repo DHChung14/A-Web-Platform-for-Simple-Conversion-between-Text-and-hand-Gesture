@@ -209,7 +209,7 @@ public class DictionaryController {
      * PUT /api/admin/dictionary/{id}
      * Update an existing dictionary word (ADMIN only)
      */
-    @PutMapping("/admin/dictionary/{id}")
+    @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<DictionaryDTO>> updateWord(
             @PathVariable Long id,
@@ -232,8 +232,9 @@ public class DictionaryController {
     /**
      * DELETE /api/admin/dictionary/{id}
      * Delete an existing dictionary word (ADMIN only)
+     * Note: This endpoint is accessed via /api/admin/dictionary/{id} from AdminController
      */
-    @DeleteMapping("/admin/dictionary/{id}")
+    @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> deleteWord(@PathVariable Long id) {
         try {
@@ -248,6 +249,26 @@ public class DictionaryController {
             log.error("Failed to delete dictionary word {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to delete dictionary word: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/dictionary/sync
+     * Trigger manual sync of all words to Elasticsearch
+     * Requires ADMIN role
+     */
+    @PostMapping("/sync")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<String>> syncAll() {
+        try {
+            dictionaryService.syncAllToElasticsearch();
+            return ResponseEntity.ok(
+                    ApiResponse.success("Started full sync to Elasticsearch in background", "OK")
+            );
+        } catch (Exception e) {
+            log.error("Failed to trigger sync: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to trigger sync: " + e.getMessage()));
         }
     }
 }

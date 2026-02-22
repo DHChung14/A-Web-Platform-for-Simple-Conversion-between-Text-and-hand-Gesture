@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent, Suspense } from "react";
+import { useState, FormEvent, Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
@@ -18,8 +18,17 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get("from") || "/"; // Default to "/" if no from parameter
+  const expired = searchParams.get("expired"); // Check if session expired
   const login = useAuthStore((state) => state.login);
   const setGuestMode = useAuthStore((state) => state.setGuestMode);
+  const logout = useAuthStore((state) => state.logout);
+  
+  // Clear auth state if session expired
+  useEffect(() => {
+    if (expired === "true") {
+      logout(); // Clear any stale auth state
+    }
+  }, [expired, logout]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -32,7 +41,11 @@ function LoginForm() {
         { username, password }
       );
 
-      if (response.data.code === 200 && response.data.data) {
+      // Check response code (can be number or string)
+      const responseCode = response.data.code;
+      const isSuccess = (responseCode === 200 || String(responseCode) === "200") && response.data.data;
+      
+      if (isSuccess) {
         const authData = response.data.data;
         login(authData);
 
@@ -47,10 +60,28 @@ function LoginForm() {
       }
     } catch (err: any) {
       console.error("Login error:", err);
-      setError(
-        err.response?.data?.message ||
-          "Login failed. Please check your username and password."
-      );
+      
+      // Extract error message from response
+      let errorMessage = "Login failed. Please check your username and password.";
+      
+      if (err.response) {
+        // Check if response has data with message
+        if (err.response.data?.message) {
+          errorMessage = err.response.data.message;
+        } else if (err.response.data?.code) {
+          // If we have a code but no message, use default
+          errorMessage = "Invalid username or password";
+        }
+        
+        // Handle rate limiting
+        if (err.response.status === 429) {
+          errorMessage = "Too many login attempts. Please wait a moment and try again.";
+        } else if (err.response.status === 401) {
+          errorMessage = err.response.data?.message || "Invalid username or password";
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -71,6 +102,11 @@ function LoginForm() {
           <div className={styles.loginSubtitle}>Access VSL Platform</div>
         </div>
 
+        {expired === "true" && (
+          <div className={styles.errorMessage} style={{ marginBottom: "10px" }}>
+            ⚠️ Your session has expired. Please log in again.
+          </div>
+        )}
         {error && <div className={styles.errorMessage}>{error}</div>}
 
         <form onSubmit={handleSubmit}>

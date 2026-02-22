@@ -22,17 +22,36 @@ data "aws_vpc" "default" {
   default = true
 }
 
-# Get default subnets
+# Get default subnets (public subnets only)
 data "aws_subnets" "default" {
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.default.id]
   }
+
+  # Filter for public subnets (those with internet gateway route)
+  filter {
+    name   = "default-for-az"
+    values = ["true"]
+  }
 }
 
+# Get subnet details to find public subnets
 data "aws_subnet" "default" {
   for_each = toset(data.aws_subnets.default.ids)
   id       = each.value
+}
+
+# Find a public subnet (one that can auto-assign public IP)
+locals {
+  # Get subnets that can auto-assign public IP
+  public_subnets = [
+    for subnet_id, subnet in data.aws_subnet.default : subnet_id
+    if subnet.map_public_ip_on_launch == true
+  ]
+
+  # Use first public subnet, or fallback to first subnet
+  selected_subnet = length(local.public_subnets) > 0 ? local.public_subnets[0] : tolist(data.aws_subnets.default.ids)[0]
 }
 
 # Get latest Amazon Linux 2023 AMI
@@ -182,8 +201,8 @@ resource "aws_instance" "vsl_platform" {
   key_name               = aws_key_pair.vsl_platform.key_name
   vpc_security_group_ids = [aws_security_group.ec2.id]
 
-  # Use first available subnet in default VPC
-  subnet_id = tolist(data.aws_subnets.default.ids)[0]
+  # Use public subnet (one that can auto-assign public IP)
+  subnet_id = local.selected_subnet
 
   # Enable auto-assign public IP
   associate_public_ip_address = true
@@ -207,6 +226,10 @@ resource "aws_instance" "vsl_platform" {
     # Update system
     echo "Updating system packages..."
     yum update -y || { echo "Failed to update packages"; exit 1; }
+    
+    # Install Git
+    echo "Installing Git..."
+    yum install git -y || { echo "Failed to install Git"; exit 1; }
     
     # Install Docker
     echo "Installing Docker..."
@@ -232,13 +255,9 @@ resource "aws_instance" "vsl_platform" {
     systemctl start nginx || { echo "Failed to start Nginx"; exit 1; }
     systemctl enable nginx || { echo "Failed to enable Nginx"; exit 1; }
     
-    # Install GitLab Runner (optional)
-    echo "Installing GitLab Runner..."
-    curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.rpm.sh" | bash || echo "Warning: Failed to add GitLab Runner repo"
-    yum install gitlab-runner -y || echo "Warning: Failed to install GitLab Runner"
-    systemctl start gitlab-runner || echo "Warning: Failed to start GitLab Runner"
-    systemctl enable gitlab-runner || echo "Warning: Failed to enable GitLab Runner"
-    usermod -aG docker gitlab-runner || echo "Warning: Failed to add gitlab-runner to docker group"
+    # Install Certbot for SSL
+    echo "Installing Certbot..."
+    yum install certbot python3-certbot-nginx -y || echo "Warning: Failed to install Certbot"
     
     echo "User-data script completed successfully at $(date)"
   EOF

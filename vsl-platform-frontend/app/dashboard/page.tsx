@@ -10,8 +10,9 @@ import styles from "../../styles/dashboard.module.css";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { isAuthenticated, isGuest, logout, role } = useAuthStore();
+  const { isAuthenticated, isGuest, logout, role, token } = useAuthStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   // Search history state
   const [searchHistory, setSearchHistory] = useState<SearchHistoryDTO[]>([]);
@@ -23,13 +24,19 @@ export default function DashboardPage() {
   const [isFavoritesLoading, setIsFavoritesLoading] = useState(false);
   const [favoritesError, setFavoritesError] = useState<string | null>(null);
 
+  // Wait for Zustand persist to hydrate from localStorage
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   // Fetch search history
   useEffect(() => {
     const fetchSearchHistory = async () => {
-      if (!isAuthenticated) {
-        console.log(
-          "[Dashboard] User not authenticated, skipping history fetch"
-        );
+      // Wait for hydration before checking auth
+      if (!isHydrated) return;
+      
+      // Check both isAuthenticated and token to ensure user is really authenticated
+      if (!isAuthenticated || !token) {
         return;
       }
 
@@ -64,15 +71,16 @@ export default function DashboardPage() {
     };
 
     fetchSearchHistory();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, token, isHydrated]);
 
   // Fetch favorites (limited to 5 for dashboard)
   useEffect(() => {
     const fetchFavorites = async () => {
-      if (!isAuthenticated) {
-        console.log(
-          "[Dashboard] User not authenticated, skipping favorites fetch"
-        );
+      // Wait for hydration before checking auth
+      if (!isHydrated) return;
+      
+      // Check both isAuthenticated and token to ensure user is really authenticated
+      if (!isAuthenticated || !token) {
         return;
       }
 
@@ -106,7 +114,7 @@ export default function DashboardPage() {
     };
 
     fetchFavorites();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, token, isHydrated]);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -404,13 +412,25 @@ export default function DashboardPage() {
                         href={`/dictionary/${fav.dictionaryId}`}
                         className={styles["favorite-card"]}
                       >
-                        {fav.videoUrl && (
+                        {fav.videoUrl && 
+                         fav.videoUrl.trim() !== "" && 
+                         fav.videoUrl.trim() !== "string" &&
+                         (fav.videoUrl.startsWith("http://") || 
+                          fav.videoUrl.startsWith("https://") ||
+                          fav.videoUrl.startsWith("/uploads/")) && (
                           <div className={styles["favorite-video"]}>
                             <video
                               src={fav.videoUrl}
                               className={styles["video-preview"]}
                               muted
                               playsInline
+                              onError={(e) => {
+                                // Hide video element if it fails to load
+                                const target = e.target as HTMLVideoElement;
+                                if (target.parentElement) {
+                                  target.parentElement.style.display = 'none';
+                                }
+                              }}
                             />
                             <div className={styles["play-overlay"]}>▶</div>
                           </div>

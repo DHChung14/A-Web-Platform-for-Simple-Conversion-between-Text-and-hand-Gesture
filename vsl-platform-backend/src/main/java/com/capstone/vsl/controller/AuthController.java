@@ -85,8 +85,16 @@ public class AuthController {
             log.info("User logged in successfully: {}", userPrincipal.getUsername());
             return ResponseEntity.ok(ApiResponse.success("Login successful", authResponse));
 
+        } catch (org.springframework.security.authentication.BadCredentialsException e) {
+            log.warn("Login failed: Bad credentials for username: {}", authRequest.getUsername());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Invalid username or password"));
+        } catch (org.springframework.security.authentication.DisabledException e) {
+            log.warn("Login failed: Account disabled for username: {}", authRequest.getUsername());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Account is disabled. Please contact administrator."));
         } catch (Exception e) {
-            log.error("Login failed: {}", e.getMessage());
+            log.error("Login failed: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error("Invalid username or password"));
         }

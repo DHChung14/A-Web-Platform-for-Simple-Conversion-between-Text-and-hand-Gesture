@@ -40,5 +40,11 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
      */
     @Query("SELECT COUNT(r) FROM Report r WHERE r.user = :user AND r.status = 'OPEN'")
     long countOpenReportsByUser(com.capstone.vsl.entity.User user);
+    
+    /**
+     * Find all reports for a dictionary word
+     * Used when deleting a dictionary word to clean up related reports
+     */
+    List<Report> findByDictionary(com.capstone.vsl.entity.Dictionary dictionary);
 }
 

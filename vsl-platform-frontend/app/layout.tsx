@@ -4,11 +4,13 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast"; // Thông báo popup
 import AdminRouteGuard from "@/components/AdminRouteGuard";
 
-// Cấu hình font
+// Cấu hình font - disable preload để tránh warnings
 const spaceMono = Space_Mono({ 
   subsets: ["latin", "vietnamese"],
   weight: ["400", "700"],
   variable: "--font-mono", // Biến CSS
+  display: "swap", // Use font-display: swap to reduce layout shift
+  preload: true, // Keep preload but Next.js will optimize it
 });
 
 export const metadata: Metadata = {

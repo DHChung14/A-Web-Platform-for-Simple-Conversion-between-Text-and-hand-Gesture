@@ -279,8 +279,21 @@ export default function WordDetailPage() {
       return;
     }
 
-    if (!reportReason.trim()) {
+    const trimmedReason = reportReason.trim();
+    
+    if (!trimmedReason) {
       setReportError("Please enter a report reason");
+      return;
+    }
+    
+    // Validate reason length (10-1000 characters as per backend validation)
+    if (trimmedReason.length < 10) {
+      setReportError("Report reason must be at least 10 characters long");
+      return;
+    }
+    
+    if (trimmedReason.length > 1000) {
+      setReportError("Report reason must not exceed 1000 characters");
       return;
     }
 
@@ -308,7 +321,7 @@ export default function WordDetailPage() {
     try {
       const requestBody: ReportRequest = {
         wordId: parseInt(wordId),
-        reason: reportReason.trim(),
+        reason: trimmedReason,
       };
 
       const response = await apiClient.post<ApiResponse<unknown>>(
@@ -853,7 +866,9 @@ export default function WordDetailPage() {
                 <textarea
                   value={reportReason}
                   onChange={(e) => setReportReason(e.target.value)}
-                  placeholder="Example: Video is inaccurate, definition is wrong..."
+                  minLength={10}
+                  maxLength={1000}
+                  placeholder="Please describe the issue (minimum 10 characters, maximum 1000 characters)..."
                   disabled={isReportSubmitting}
                   style={{
                     width: "100%",
@@ -894,7 +909,12 @@ export default function WordDetailPage() {
                   </button>
                   <button
                     onClick={handleSubmitReport}
-                    disabled={isReportSubmitting || !reportReason.trim()}
+                    disabled={
+                      isReportSubmitting ||
+                      !reportReason.trim() ||
+                      reportReason.trim().length < 10 ||
+                      reportReason.trim().length > 1000
+                    }
                     style={{
                       padding: "10px 20px",
                       backgroundColor: "#00ff41",
@@ -902,11 +922,21 @@ export default function WordDetailPage() {
                       color: "#000",
                       borderRadius: "4px",
                       cursor:
-                        isReportSubmitting || !reportReason.trim()
+                        isReportSubmitting ||
+                        !reportReason.trim() ||
+                        reportReason.trim().length < 10 ||
+                        reportReason.trim().length > 1000
                           ? "not-allowed"
                           : "pointer",
                       fontSize: "14px",
                       fontWeight: "bold",
+                      opacity:
+                        isReportSubmitting ||
+                        !reportReason.trim() ||
+                        reportReason.trim().length < 10 ||
+                        reportReason.trim().length > 1000
+                          ? 0.5
+                          : 1,
                     }}
                   >
                     {isReportSubmitting

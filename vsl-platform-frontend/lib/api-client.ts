@@ -5,11 +5,20 @@ import { GestureRecognitionRequest, GestureRecognitionResponse } from '@/types/a
 // - Local development: http://localhost:8081/api
 // - Docker: http://backend:8080/api (frontend inside container, use service name)
 // - Browser access: http://localhost:8081/api (browser runs on host)
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || (
-  typeof window !== "undefined" 
+// Get API URL from environment variable, with fallback
+const getBaseUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl) {
+    // If env URL already includes /api, use as-is; otherwise append /api
+    return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
+  }
+  // Fallback for local development
+  return typeof window !== "undefined" 
     ? "http://localhost:8081/api"  // Browser: use localhost
-    : "http://backend:8080/api"    // Server-side: use Docker service name
-);
+    : "http://backend:8080/api";    // Server-side: use Docker service name
+};
+
+const BASE_URL = getBaseUrl();
 
 // Type định nghĩa response structure
 interface ApiResponse<T> {
@@ -51,10 +60,25 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
-    if (status === 401 && typeof window !== "undefined") {
+    const requestUrl = error.config?.url || "";
+    
+    // Chỉ xử lý 401 cho các request không phải login/register
+    // (tránh redirect khi đang cố login)
+    if (
+      status === 401 && 
+      typeof window !== "undefined" &&
+      !requestUrl.includes("/auth/login") &&
+      !requestUrl.includes("/auth/register")
+    ) {
       console.warn("Phiên đăng nhập hết hạn, chuyển hướng về trang login...");
-      // Uncomment dòng dưới để tự động redirect khi token hết hạn
-      // window.location.href = "/login";
+      
+      // Clear auth state và redirect
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+        localStorage.removeItem("auth-storage");
+        // Redirect to login page
+        window.location.href = "/login?expired=true";
+      }
     }
     return Promise.reject(error);
   }

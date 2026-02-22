@@ -30,7 +30,7 @@ public class Dictionary extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String definition;
 
-    @Column(name = "video_url", nullable = false)
+    @Column(name = "video_url", nullable = true) // Changed to nullable - video URL is optional
     private String videoUrl;
 
     @Column(name = "elastic_synced", nullable = false)

@@ -29,7 +29,10 @@ variable "domain_name" {
 variable "ec2_instance_type" {
   description = "EC2 instance type"
   type        = string
-  default     = "t3.micro" # Free Tier eligible
+  default     = "t3.small" # Upgraded from t3.micro (2GB RAM vs 1GB) - Better performance, less timeout
+  # Note: t3.micro (1GB RAM) is too small for 3 services (Frontend + Backend + AI Service)
+  # t3.small (2GB RAM) is recommended for stable operation
+  # Cost: ~$15-20/month (vs Free Tier t3.micro)
 }
 
 variable "ssh_public_key" {

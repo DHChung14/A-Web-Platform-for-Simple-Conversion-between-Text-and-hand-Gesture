@@ -15,5 +15,15 @@ public interface SearchHistoryRepository extends JpaRepository<SearchHistory, Lo
     List<SearchHistory> findByUserOrderBySearchedAtDesc(User user, org.springframework.data.domain.Pageable pageable);
 
     void deleteByUser(User user);
+
+    /**
+     * Find search history by ID and User (for security: ensure user owns the history)
+     */
+    java.util.Optional<SearchHistory> findByIdAndUser(Long id, User user);
+
+    /**
+     * Delete search history entries by IDs and User (for security: ensure user owns the histories)
+     */
+    void deleteByIdInAndUser(List<Long> ids, User user);
 }
 
