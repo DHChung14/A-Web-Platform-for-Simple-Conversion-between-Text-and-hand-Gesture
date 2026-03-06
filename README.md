@@ -35,6 +35,7 @@ Making it Fast & Smooth: The biggest challenge was making the translation happen
 The final product is a comprehensive web application that operates stably and achieves high accuracy in daily testing. The project successfully turned a complex technical idea into a highly accessible product. It carries profound social value, opening up enormous potential for inclusive education and breaking down the invisible walls in community communication.
 
 🔮 Future Works
+
 Expand the system's vocabulary to recognize continuous, complex sentences instead of just basic characters/words.
 
 Optimize the camera tracking layout to work perfectly on mobile phone browsers.
