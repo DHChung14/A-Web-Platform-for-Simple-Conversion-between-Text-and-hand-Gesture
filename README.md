@@ -1,4 +1,4 @@
-A Web Platform for Simple Conversion Between Text and Hand Gesture
+# A Web Platform for Simple Conversion Between Text and Hand Gesture
 
 📌 Project Overview
 
